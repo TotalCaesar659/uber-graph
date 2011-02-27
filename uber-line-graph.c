@@ -1,17 +1,17 @@
 /* uber-line-graph.c
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -35,7 +35,7 @@
 /**
  * SECTION:uber-line-graph.h
  * @title: UberLineGraph
- * @short_description: 
+ * @short_description:
  *
  * Section overview.
  */
@@ -68,6 +68,13 @@ struct _UberLineGraphPrivate
 	UberLineGraphFunc  func;
 	gpointer           func_data;
 	GDestroyNotify     func_notify;
+};
+
+enum
+{
+	PROP_0,
+	PROP_AUTOSCALE,
+	PROP_RANGE,
 };
 
 /**
@@ -673,6 +680,22 @@ uber_line_graph_set_stride (UberGraph *graph,  /* IN */
 }
 
 /**
+ * uber_line_graph_get_range:
+ * @graph: (in): A #UberLineGraph.
+ *
+ * XXX
+ *
+ * Returns: An #UberRange which should not be modified or freed.
+ * Side effects: None.
+ */
+const UberRange*
+uber_line_graph_get_range (UberLineGraph *graph) /* IN */
+{
+	g_return_val_if_fail(UBER_IS_LINE_GRAPH(graph), NULL);
+	return &graph->priv->range;
+}
+
+/**
  * uber_line_graph_set_range:
  * @graph: A #UberLineGraph.
  *
@@ -892,6 +915,64 @@ uber_line_graph_finalize (GObject *object) /* IN */
 }
 
 /**
+ * uber_line_graph_set_property:
+ * @object: (in): A #GObject.
+ * @prop_id: (in): The property identifier.
+ * @value: (out): The given property.
+ * @pspec: (in): A #ParamSpec.
+ *
+ * Get a given #GObject property.
+ */
+static void
+uber_line_graph_get_property (GObject    *object,  /* IN */
+                              guint       prop_id, /* IN */
+                              GValue     *value,   /* OUT */
+                              GParamSpec *pspec)   /* IN */
+{
+	UberLineGraph *graph = UBER_LINE_GRAPH(object);
+
+	switch (prop_id) {
+	case PROP_AUTOSCALE:
+		g_value_set_boolean(value, uber_line_graph_get_autoscale(graph));
+		break;
+	case PROP_RANGE:
+		g_value_set_boxed(value, uber_line_graph_get_range(graph));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+/**
+ * uber_line_graph_set_property:
+ * @object: (in): A #GObject.
+ * @prop_id: (in): The property identifier.
+ * @value: (in): The given property.
+ * @pspec: (in): A #ParamSpec.
+ *
+ * Set a given #GObject property.
+ */
+static void
+uber_line_graph_set_property (GObject      *object,  /* IN */
+                              guint         prop_id, /* IN */
+                              const GValue *value,   /* IN */
+                              GParamSpec   *pspec)   /* IN */
+{
+	UberLineGraph *graph = UBER_LINE_GRAPH(object);
+
+	switch (prop_id) {
+	case PROP_AUTOSCALE:
+		uber_line_graph_set_autoscale(graph, g_value_get_boolean(value));
+		break;
+	case PROP_RANGE:
+		uber_line_graph_set_range(graph, g_value_get_boxed(value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+/**
  * uber_line_graph_class_init:
  * @klass: A #UberLineGraphClass.
  *
@@ -908,6 +989,8 @@ uber_line_graph_class_init (UberLineGraphClass *klass) /* IN */
 
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = uber_line_graph_finalize;
+	object_class->get_property = uber_line_graph_get_property;
+	object_class->set_property = uber_line_graph_set_property;
 	g_type_class_add_private(object_class, sizeof(UberLineGraphPrivate));
 
 	graph_class = UBER_GRAPH_CLASS(klass);
@@ -917,6 +1000,22 @@ uber_line_graph_class_init (UberLineGraphClass *klass) /* IN */
 	graph_class->render = uber_line_graph_render;
 	graph_class->render_fast = uber_line_graph_render_fast;
 	graph_class->set_stride = uber_line_graph_set_stride;
+
+	g_object_class_install_property(object_class,
+	                                PROP_AUTOSCALE,
+	                                g_param_spec_boolean("autoscale",
+	                                                     "autoscale",
+	                                                     "autoscale",
+	                                                     FALSE,
+	                                                     G_PARAM_READWRITE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_RANGE,
+	                                g_param_spec_boxed("range",
+	                                                   "range",
+	                                                   "range",
+	                                                   UBER_TYPE_RANGE,
+	                                                   G_PARAM_READWRITE));
 }
 
 /**

@@ -1,17 +1,17 @@
 /* uber-graph.c
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -109,6 +109,12 @@ struct _UberGraphPrivate
 };
 
 static gboolean show_fps = FALSE;
+
+enum
+{
+	PROP_0,
+	PROP_FORMAT,
+};
 
 /**
  * uber_graph_new:
@@ -1235,7 +1241,7 @@ uber_graph_render_x_axis (UberGraph *graph, /* IN */
 	cairo_restore(cr);
 }
 
-static inline void G_GNUC_PRINTF(6, 7)
+static void G_GNUC_PRINTF(6, 7)
 uber_graph_render_y_line (UberGraph   *graph,     /* IN */
                           cairo_t     *cr,        /* IN */
                           gint         y,         /* IN */
@@ -2022,6 +2028,58 @@ uber_graph_dispose (GObject *object) /* IN */
 }
 
 /**
+ * uber_graph_set_property:
+ * @object: (in): A #GObject.
+ * @prop_id: (in): The property identifier.
+ * @value: (out): The given property.
+ * @pspec: (in): A #ParamSpec.
+ *
+ * Get a given #GObject property.
+ */
+static void
+uber_graph_get_property (GObject    *object,  /* IN */
+                         guint       prop_id, /* IN */
+                         GValue     *value,   /* OUT */
+                         GParamSpec *pspec)   /* IN */
+{
+	UberGraph *graph = UBER_GRAPH(object);
+
+	switch (prop_id) {
+	case PROP_FORMAT:
+		g_value_set_uint(value, graph->priv->format);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+/**
+ * uber_graph_set_property:
+ * @object: (in): A #GObject.
+ * @prop_id: (in): The property identifier.
+ * @value: (in): The given property.
+ * @pspec: (in): A #ParamSpec.
+ *
+ * Set a given #GObject property.
+ */
+static void
+uber_graph_set_property (GObject      *object,
+                         guint         prop_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
+{
+	UberGraph *graph = UBER_GRAPH(object);
+
+	switch (prop_id) {
+	case PROP_FORMAT:
+		uber_graph_set_format(graph, g_value_get_uint(value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+/**
  * uber_graph_class_init:
  * @klass: A #UberGraphClass.
  *
@@ -2037,8 +2095,10 @@ uber_graph_class_init (UberGraphClass *klass) /* IN */
 	GtkWidgetClass *widget_class;
 
 	object_class = G_OBJECT_CLASS(klass);
-	object_class->finalize = uber_graph_finalize;
 	object_class->dispose = uber_graph_dispose;
+	object_class->finalize = uber_graph_finalize;
+	object_class->get_property = uber_graph_get_property;
+	object_class->set_property = uber_graph_set_property;
 	g_type_class_add_private(object_class, sizeof(UberGraphPrivate));
 
 	widget_class = GTK_WIDGET_CLASS(klass);
@@ -2054,6 +2114,19 @@ uber_graph_class_init (UberGraphClass *klass) /* IN */
 	widget_class->button_press_event = uber_graph_button_press_event;
 
 	show_fps = !!g_getenv("UBER_SHOW_FPS");
+
+	/*
+	 * FIXME: Use enum.
+	 */
+	g_object_class_install_property(object_class,
+	                                PROP_FORMAT,
+	                                g_param_spec_uint("format",
+	                                                  "format",
+	                                                  "format",
+	                                                  0,
+	                                                  UBER_GRAPH_FORMAT_PERCENT,
+	                                                  0,
+	                                                  G_PARAM_READWRITE));
 }
 
 /**

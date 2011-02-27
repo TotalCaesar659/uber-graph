@@ -59,14 +59,12 @@ G_BEGIN_DECLS
                             ((ring)->pos - 1 - (i)) :                 \
                             ((ring)->len + ((ring)->pos - 1 - (i)))])
 
-typedef struct _GRing GRing;
-
-struct _GRing
+typedef struct
 {
 	guint8 *data;
 	guint   len;
 	guint   pos;
-};
+} GRing;
 
 GType  g_ring_get_type    (void) G_GNUC_CONST;
 GRing* g_ring_sized_new   (guint           element_size,

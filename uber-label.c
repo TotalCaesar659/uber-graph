@@ -1,17 +1,17 @@
 /* uber-label.c
  *
  * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -27,7 +27,7 @@
 /**
  * SECTION:uber-label.h
  * @title: UberLabel
- * @short_description: 
+ * @short_description:
  *
  * Section overview.
  */
@@ -47,6 +47,13 @@ enum
 {
 	COLOR_CHANGED,
 	LAST_SIGNAL
+};
+
+enum
+{
+	PROP_0,
+	PROP_COLOR,
+	PROP_TEXT,
 };
 
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -244,6 +251,35 @@ uber_label_block_button_press_event (GtkWidget      *widget, /* IN */
 }
 
 /**
+ * uber_label_set_property:
+ * @object: (in): A #GObject.
+ * @prop_id: (in): The property identifier.
+ * @value: (in): The given property.
+ * @pspec: (in): A #ParamSpec.
+ *
+ * Set a given #GObject property.
+ */
+static void
+uber_label_set_property (GObject      *object,
+                         guint         prop_id,
+                         const GValue *value,
+                         GParamSpec   *pspec)
+{
+	UberLabel *label = UBER_LABEL(object);
+
+	switch (prop_id) {
+	case PROP_COLOR:
+		uber_label_set_color(label, g_value_get_boxed(value));
+		break;
+	case PROP_TEXT:
+		uber_label_set_text(label, g_value_get_string(value));
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+	}
+}
+
+/**
  * uber_label_finalize:
  * @object: A #UberLabel.
  *
@@ -275,7 +311,24 @@ uber_label_class_init (UberLabelClass *klass) /* IN */
 
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = uber_label_finalize;
+	object_class->set_property = uber_label_set_property;
 	g_type_class_add_private(object_class, sizeof(UberLabelPrivate));
+
+	g_object_class_install_property(object_class,
+	                                PROP_COLOR,
+	                                g_param_spec_boxed("color",
+	                                                   "color",
+	                                                   "color",
+	                                                   GDK_TYPE_COLOR,
+	                                                   G_PARAM_WRITABLE));
+
+	g_object_class_install_property(object_class,
+	                                PROP_TEXT,
+	                                g_param_spec_string("text",
+	                                                    "text",
+	                                                    "text",
+	                                                    NULL,
+	                                                    G_PARAM_WRITABLE));
 
 	/**
 	 * UberLabel::color-changed:
