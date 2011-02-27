@@ -19,7 +19,7 @@
 #ifndef __UBER_LABEL_H__
 #define __UBER_LABEL_H__
 
-#include "uber-graph.h"
+#include <gtk/gtk.h>
 
 G_BEGIN_DECLS
 
@@ -48,9 +48,6 @@ struct _UberLabelClass
 	GtkAlignmentClass parent_class;
 };
 
-void       uber_label_bind_graph (UberLabel      *label,
-                                  UberGraph      *graph,
-                                  gint            line);
 GType      uber_label_get_type   (void) G_GNUC_CONST;
 GtkWidget* uber_label_new        (void);
 void       uber_label_set_color  (UberLabel      *label,

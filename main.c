@@ -20,431 +20,327 @@
 #include "config.h"
 #endif
 
-#ifndef GETTEXT_PACKAGE
-#define GETTEXT_PACKAGE "UberGraph"
-#endif
-
-#ifndef LOCALE_DIR
-#define LOCALE_DIR "/usr/share/locale"
-#endif
-
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <glib.h>
-#include <glib/gi18n.h>
-#include <gtk/gtk.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include <ctype.h>
 #include <sys/sysinfo.h>
-#include <signal.h>
+#include <stdlib.h>
+#include <dlfcn.h>
+#include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
 
-#include "uber-graph.h"
-#include "uber-label.h"
-#include "uber-buffer.h"
-#include "uber-heat-map.h"
-
-#ifdef DISABLE_DEBUG
-#define DEBUG(f,...)
-#else
-#define DEBUG(f,...) g_debug(f, ## __VA_ARGS__)
-#endif
+#include "uber.h"
+#include "uber-blktrace.h"
 
 typedef struct
 {
-	volatile gdouble swapFree;
-	volatile gdouble memFree;
-} MemInfo;
-
-typedef struct
-{
-	volatile gdouble  cpuUsage;  /* Total cpu */
-	volatile gdouble *cpusUsage; /* Per cpu */
+	guint       len;
+	gdouble    *total;
+	gdouble    *freq;
+	glong      *last_user;
+	glong      *last_idle;
+	glong      *last_system;
+	glong      *last_nice;
+	GtkWidget **labels;
 } CpuInfo;
 
 typedef struct
 {
-	volatile gdouble bytesIn;
-	volatile gdouble bytesOut;
+	gdouble total_in;
+	gdouble total_out;
+	gdouble last_total_in;
+	gdouble last_total_out;
 } NetInfo;
 
 typedef struct
 {
-	volatile gdouble load5;
-	volatile gdouble load10;
-	volatile gdouble load15;
-} LoadInfo;
+	gulong gdk_event_count;
+	gulong x_event_count;
+} UIInfo;
 
-typedef struct
-{
-	volatile gdouble size;
-	volatile gdouble resident;
-} PmemInfo;
-
-typedef struct
-{
-	volatile gdouble vruntime;
-} SchedInfo;
-
-typedef struct
-{
-	volatile gint n_threads;
-} ThreadInfo;
-
-static MemInfo    mem_info   = { 0 };
-static CpuInfo    cpu_info   = { 0 };
-static NetInfo    net_info   = { 0 };
-static LoadInfo   load_info  = { 0 };
-static PmemInfo   pmem_info  = { 0 };
-static SchedInfo  sched_info = { 0 };
-static ThreadInfo thread_info= { 0 };
-static GtkWidget *load_graph = NULL;
-static GtkWidget *cpu_graph  = NULL;
-static GtkWidget *cpu_label_hbox = NULL;
-static GtkWidget *net_label_hbox = NULL;
-static GtkWidget *mem_label_hbox = NULL;
-static GtkWidget *load_label_hbox = NULL;
-static GtkWidget *net_graph  = NULL;
-static GtkWidget *mem_graph  = NULL;
-static gboolean   reaped     = FALSE;
-static GtkWidget *vbox       = NULL;
-static GtkWidget *pmem_graph = NULL;
-static GtkWidget *sched_graph  = NULL;
-static GtkWidget *thread_graph = NULL;
-static GPid       pid        = 0;
-static GPtrArray *labels     = NULL;
-
-static const gchar* cpu_colors[] = {
-	"#73d216",
-	"#f57900",
-	"#3465a4",
-	"#ef2929",
-	"#75507b",
-	"#ce5c00",
-	"#c17d11",
-	"#ce5c00",
-};
-
-static gboolean
-get_cpu (UberGraph *graph,
-         gint       line,
-         gdouble   *value,
-         gpointer   user_data)
-{
-	UberLabel *label;
-	gint i = line - 1;
-	gchar *str;
-
-#if 0
-	if (line == 1) {
-		*value = cpu_info.cpuUsage;
-	} else {
-		*value = cpu_info.cpusUsage[line - 2];
-	}
-#endif
-
-	*value = cpu_info.cpusUsage[i];
-	str = g_strdup_printf("CPU%d  %.1f%%", i + 1, cpu_info.cpusUsage[i]);
-	label = g_ptr_array_index(labels, i);
-	uber_label_set_text(label, str);
-	g_free(str);
-	return TRUE;
-}
-
-static gboolean
-get_mem (UberGraph *graph,
-         gint       line,
-         gdouble   *value,
-         gpointer   user_data)
-{
-	switch (line) {
-	case 1:
-		*value = mem_info.memFree;
-		break;
-	case 2:
-		*value = mem_info.swapFree;
-		break;
-	default:
-		g_assert_not_reached();
-	}
-	return TRUE;
-}
-
-static gboolean
-get_load (UberGraph *graph,
-          gint       line,
-          gdouble   *value,
-          gpointer   user_data)
-{
-	switch (line) {
-	case 1:
-		*value = load_info.load5;
-		break;
-	case 2:
-		*value = load_info.load10;
-		break;
-	case 3:
-		*value = load_info.load15;
-		break;
-	default:
-		g_assert_not_reached();
-	}
-	return TRUE;
-}
-
-static gboolean
-get_net (UberGraph *graph,
-         gint       line,
-         gdouble   *value,
-         gpointer   user_data)
-{
-	switch (line) {
-	case 1:
-		*value = net_info.bytesIn;
-		break;
-	case 2:
-		*value = net_info.bytesOut;
-		break;
-	default:
-		g_assert_not_reached();
-	}
-	return TRUE;
-}
-
-static gboolean
-get_threads (UberGraph *graph,
-             gint       line,
-             gdouble   *value,
-             gpointer   user_data)
-{
-	switch (line) {
-	case 1:
-		*value = thread_info.n_threads;
-		break;
-	default:
-		g_assert_not_reached();
-	}
-	return TRUE;
-}
-
-static gboolean
-button_pressed (GtkWidget      *graph,
-                GdkEventButton *button,
-                gpointer        user_data)
-{
-	gboolean show_cpu = FALSE;
-	gboolean show_mem = FALSE;
-	gboolean show_load = FALSE;
-	gboolean show_net = FALSE;
-
-	if (button->button != 1) {
-		return FALSE;
-	}
-	if (button->type != GDK_BUTTON_PRESS) {
-		return FALSE;
-	}
-	if (graph == cpu_graph) {
-		show_cpu = !gtk_widget_get_visible(cpu_label_hbox);
-	} else if (graph == net_graph) {
-		show_net = !gtk_widget_get_visible(net_label_hbox);
-	} else if (graph == mem_graph) {
-		show_mem = !gtk_widget_get_visible(mem_label_hbox);
-	} else if (graph == load_graph) {
-		show_load = !gtk_widget_get_visible(load_label_hbox);
-	}
-	gtk_widget_set_visible(cpu_label_hbox, show_cpu);
-	gtk_widget_set_visible(mem_label_hbox, show_mem);
-	gtk_widget_set_visible(net_label_hbox, show_net);
-	gtk_widget_set_visible(load_label_hbox, show_load);
-	uber_graph_set_show_xlabel(UBER_GRAPH(load_graph), show_load);
-	uber_graph_set_show_xlabel(UBER_GRAPH(net_graph), show_net);
-	uber_graph_set_show_xlabel(UBER_GRAPH(cpu_graph), show_cpu);
-	return FALSE;
-}
-
-static inline GtkWidget*
-create_graph (void)
-{
-	GtkWidget *graph;
-	//GtkWidget *align;
-
-	graph = uber_graph_new();
-	//align = gtk_alignment_new(.5, .5, 1., 1.);
-	//gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 6, 0);
-	//gtk_container_add(GTK_CONTAINER(align), graph);
-	//gtk_box_pack_start(GTK_BOX(vbox), align, TRUE, TRUE, 0);
-	//gtk_widget_show(align);
-	gtk_widget_set_events(graph, GDK_BUTTON_PRESS_MASK);
-	g_signal_connect(graph,
-	                 "button-press-event",
-	                 G_CALLBACK(button_pressed),
-	                 NULL);
-	gtk_widget_show(graph);
-	return graph;
-}
-
-static inline GtkWidget*
-add_label (GtkWidget   *hbox,
-           const gchar *title,
-           const gchar *color)
-{
-	GtkWidget *label;
-	GdkColor gcolor;
-
-	gdk_color_parse(color, &gcolor);
-	label = uber_label_new();
-	uber_label_set_text(UBER_LABEL(label), title);
-	uber_label_set_color(UBER_LABEL(label), &gcolor);
-	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, TRUE, 0);
-	gtk_widget_show(label);
-	return label;
-}
+static gboolean     want_blktrace    = FALSE;
+static UIInfo       ui_info          = { 0 };
+static CpuInfo      cpu_info         = { 0 };
+static NetInfo      net_info         = { 0 };
+static const gchar *default_colors[] = { "#73d216",
+                                         "#f57900",
+                                         "#3465a4",
+                                         "#ef2929",
+                                         "#75507b",
+                                         "#ce5c00",
+                                         "#c17d11",
+                                         "#ce5c00",
+                                         NULL };
 
 static void
-next_load (void)
+gdk_event_hook (GdkEvent *event, /* IN */
+                gpointer  data)  /* IN */
 {
-	gdouble load5;
-	gdouble load10;
-	gdouble load15;
-	gchar buf[1024];
-	gint fd;
-
-	fd = open("/proc/loadavg", O_RDONLY);
-	read(fd, buf, sizeof(buf));
-	close(fd);
-
-	if (sscanf(buf, "%lf %lf %lf", &load5, &load10, &load15) == 3) {
-		load_info.load5 = load5;
-		load_info.load10 = load10;
-		load_info.load15 = load15;
-	}
+	ui_info.gdk_event_count++;
+	gtk_main_do_event(event);
 }
 
-static void
-next_cpu (void)
+static gboolean
+get_xevent_info (UberLineGraph *graph,     /* IN */
+                 guint          line,      /* IN */
+                 gdouble       *value,     /* OUT */
+                 gpointer       user_data) /* IN */
 {
-	static gboolean initialized = FALSE;
-	static gfloat u1, n1, s1, i1;
-	static gfloat *_u1, *_n1, *_s1, *_i1;
-	gfloat u2, n2, s2, i2;
-	gfloat u3, n3, s3, i3;
-	gdouble total;
-	int fd;
-	char buf[4096];
-	char *line;
+	switch (line) {
+	case 1:
+		*value = ui_info.gdk_event_count;
+		ui_info.gdk_event_count = 0;
+		break;
+	case 2:
+		*value = ui_info.x_event_count;
+		ui_info.x_event_count = 0;
+		break;
+	default:
+		g_assert_not_reached();
+	}
+	return TRUE;
+}
+
+static gboolean
+get_cpu_info (UberLineGraph *graph,     /* IN */
+              guint          line,      /* IN */
+              gdouble       *value,     /* OUT */
+              gpointer       user_data) /* IN */
+{
+	gchar *text;
 	gint i;
-	gint cpu;
 
-	if (!initialized) {
-		cpu_info.cpusUsage = g_new0(gdouble, get_nprocs());
-		_u1 = g_new0(gfloat, get_nprocs());
-		_n1 = g_new0(gfloat, get_nprocs());
-		_s1 = g_new0(gfloat, get_nprocs());
-		_i1 = g_new0(gfloat, get_nprocs());
+	g_assert_cmpint(line, >, 0);
+	g_assert_cmpint(line, <=, cpu_info.len * 2);
+
+	if ((line % 2) == 0) {
+		*value = cpu_info.freq[((line - 1) / 2)];
+	} else {
+		i = (line - 1) / 2;
+		*value = cpu_info.total[i];
+		/*
+		 * Update label text.
+		 */
+		text = g_strdup_printf("CPU%d  %0.1f %%", i + 1, *value);
+		uber_label_set_text(UBER_LABEL(cpu_info.labels[i]), text);
+		g_free(text);
+	}
+	return TRUE;
+}
+
+static gboolean
+get_net_info (UberLineGraph *graph,     /* IN */
+              guint          line,      /* IN */
+              gdouble       *value,     /* IN */
+              gpointer       user_data) /* IN */
+{
+	switch (line) {
+	case 1:
+		*value = net_info.total_in;
+		break;
+	case 2:
+		*value = net_info.total_out;
+		break;
+	default:
+		g_assert_not_reached();
+	}
+	return TRUE;
+}
+
+int
+XNextEvent (Display *display,      /* IN */
+            XEvent  *event_return) /* OUT */
+{
+	static gsize initialized = FALSE;
+	static int (*Real_XNextEvent) (Display*disp, XEvent*evt);
+	gpointer lib;
+	int ret;
+	
+	if (G_UNLIKELY(g_once_init_enter(&initialized))) {
+		if (!(lib = dlopen("libX11.so.6", RTLD_LAZY))) {
+			g_error("Could not load libX11.so.6");
+		}
+		if (!(Real_XNextEvent = dlsym(lib, "XNextEvent"))) {
+			g_error("Could not find XNextEvent in libX11.so.6");
+		}
+		g_once_init_leave(&initialized, TRUE);
 	}
 
-	fd = open("/proc/stat", O_RDONLY);
-	i = read(fd, buf, sizeof(buf));
-	buf[i - 1] = '\0';
-	line = buf;
-	for (i = 0; buf[i]; i++) {
-		if (buf[i] == '\n') {
-			buf[i] = '\0';
-			if (g_str_has_prefix(line, "cpu ")) {
-				if (sscanf(line, "cpu %f %f %f %f", &u2, &n2, &s2, &i2) != 4) {
-					g_warning("Failed to read total cpu line.");
-					break;
-				} else {
-					u3 = (u2 - u1);
-					n3 = (n2 - n1);
-					s3 = (s2 - s1);
-					i3 = (i2 - i1);
-					total = (u3 + n3 + s3 + i3);
-					if (initialized) {
-						if (total != 0.) {
-							cpu_info.cpuUsage = (100 * (u3 + n3 + s3)) / total;
+	ret = Real_XNextEvent(display, event_return);
+	ui_info.x_event_count++;
+	return ret;
+}
+
+static void
+next_cpu_info (void)
+{
+	gchar cpu[64] = { 0 };
+	glong user;
+	glong system;
+	glong nice;
+	glong idle;
+	glong user_calc;
+	glong system_calc;
+	glong nice_calc;
+	glong idle_calc;
+	gchar *buf = NULL;
+	glong total;
+	gchar *line;
+	gint ret;
+	gint id;
+	gint i;
+
+	if (G_UNLIKELY(!cpu_info.len)) {
+#if __linux__
+		cpu_info.len = get_nprocs();
+#else
+#error "Your platform is not supported"
+#endif
+		g_assert(cpu_info.len);
+		/*
+		 * Allocate data for sampling.
+		 */
+		cpu_info.total = g_new0(gdouble, cpu_info.len);
+		cpu_info.last_user = g_new0(glong, cpu_info.len);
+		cpu_info.last_idle = g_new0(glong, cpu_info.len);
+		cpu_info.last_system = g_new0(glong, cpu_info.len);
+		cpu_info.last_nice = g_new0(glong, cpu_info.len);
+		cpu_info.labels = g_new0(GtkWidget*, cpu_info.len);
+	}
+
+	if (G_LIKELY(g_file_get_contents("/proc/stat", &buf, NULL, NULL))) {
+		line = buf;
+		for (i = 0; buf[i]; i++) {
+			if (buf[i] == '\n') {
+				buf[i] = '\0';
+				if (g_str_has_prefix(line, "cpu")) {
+					if (isdigit(line[3])) {
+						user = nice = system = idle = id = 0;
+						ret = sscanf(line, "%s %ld %ld %ld %ld",
+						             cpu, &user, &nice, &system, &idle);
+						if (ret != 5) {
+							goto next;
 						}
-					}
-					u1 = u2;
-					i1 = i2;
-					s1 = s2;
-					n1 = n2;
-				}
-			} else if (strncmp(line, "cpu", 3) == 0) {
-				line += 3;
-				cpu = strtoll(line, &line, 10);
-				if (sscanf(line, "%f %f %f %f", &u2, &n2, &s2, &i2) != 4) {
-					g_warning("Failed to read cpu %d line.", cpu);
-					break;
-				} else {
-					u3 = (u2 - _u1[cpu]);
-					n3 = (n2 - _n1[cpu]);
-					s3 = (s2 - _s1[cpu]);
-					i3 = (i2 - _i1[cpu]);
-					total = (u3 + n3 + s3 + i3);
-					if (initialized) {
-						if (total == 0.) {
-							cpu_info.cpusUsage[cpu] = 0.;
-						} else {
-							cpu_info.cpusUsage[cpu] = (100 * (u3 + n3 + s3)) / total;
+						ret = sscanf(cpu, "cpu%d", &id);
+						if (ret != 1 || id < 0 || id >= cpu_info.len) {
+							goto next;
 						}
+						user_calc = user - cpu_info.last_user[id];
+						nice_calc = nice - cpu_info.last_nice[id];
+						system_calc = system - cpu_info.last_system[id];
+						idle_calc = idle - cpu_info.last_idle[id];
+						total = user_calc + nice_calc + system_calc + idle_calc;
+						cpu_info.total[id] = (user_calc + nice_calc + system_calc) / (gfloat)total * 100.;
+						cpu_info.last_user[id] = user;
+						cpu_info.last_nice[id] = nice;
+						cpu_info.last_idle[id] = idle;
+						cpu_info.last_system[id] = system;
 					}
-					_u1[cpu] = u2;
-					_i1[cpu] = i2;
-					_s1[cpu] = s2;
-					_n1[cpu] = n2;
+				} else {
+					/* CPU info comes first. Skip further lines. */
+					break;
 				}
+			  next:
+				line = &buf[i + 1];
 			}
-			line = &buf[++i];
 		}
 	}
 
-	initialized = TRUE;
-
-  	close(fd);
+	g_free(buf);
 }
 
 static void
-next_net (void)
+next_cpu_freq_info (void)
 {
-	static gboolean initialized = FALSE;
-	static gdouble lastTotalIn = 0;
-	static gdouble lastTotalOut = 0;
-	char buf[4096];
-	char iface[32];
-	char *line;
-	int fd;
-	int i;
-	int l = 0;
-	gulong dummy;
-	gulong bytesIn = 0;
-	gulong bytesOut = 0;
-	gdouble totalIn = 0;
-	gdouble totalOut = 0;
+	glong max;
+	glong cur;
+	gboolean ret;
+	gchar *buf;
+	gchar *path;
+	gint i;
 
-	if ((fd = open("/proc/net/dev", O_RDONLY)) < 0) {
-		g_warning("Failed to open /proc/net/dev");
-		g_assert_not_reached();
+	g_return_if_fail(cpu_info.len > 0);
+
+	/*
+	 * Initialize.
+	 */
+	if (!cpu_info.freq) {
+		cpu_info.freq = g_new0(gdouble, cpu_info.len);
 	}
 
-	memset(buf, 0, sizeof(buf));
-	read(fd, buf, sizeof(buf));
-	buf[sizeof(buf) - 1] = '\0';
+	/*
+	 * Get current frequencies.
+	 */
+	for (i = 0; i < cpu_info.len; i++) {
+		/*
+		 * Get max frequency.
+		 */
+		path = g_strdup_printf("/sys/devices/system/cpu/cpu%d"
+		                       "/cpufreq/scaling_max_freq", i);
+		ret = g_file_get_contents(path, &buf, NULL, NULL);
+		g_free(path);
+		if (!ret) {
+			continue;
+		}
+		max = atoi(buf);
+		g_free(buf);
+
+		/*
+		 * Get current frequency.
+		 */
+		path = g_strdup_printf("/sys/devices/system/cpu/cpu%d/"
+		                       "cpufreq/scaling_cur_freq", i);
+		ret = g_file_get_contents(path, &buf, NULL, NULL);
+		g_free(path);
+		if (!ret) {
+			continue;
+		}
+		cur = atoi(buf);
+		g_free(buf);
+
+		/*
+		 * Store frequency percentage.
+		 */
+		cpu_info.freq[i] = (gfloat)cur / (gfloat)max * 100.;
+	}
+}
+
+static void
+next_net_info (void)
+{
+	GError *error = NULL;
+	gulong total_in = 0;
+	gulong total_out = 0;
+	gulong bytes_in;
+	gulong bytes_out;
+	gulong dummy;
+	gchar *buf = NULL;
+	gchar iface[32] = { 0 };
+	gchar *line;
+	gsize len;
+	gint l = 0;
+	gint i;
+
+	if (!g_file_get_contents("/proc/net/dev", &buf, &len, &error)) {
+		g_printerr("%s", error->message);
+		g_error_free(error);
+		return;
+	}
+
 	line = buf;
-	for (i = 0; buf[i]; i++) {
+	for (i = 0; i < len; i++) {
 		if (buf[i] == ':') {
 			buf[i] = ' ';
 		} else if (buf[i] == '\n') {
 			buf[i] = '\0';
 			if (++l > 2) { // ignore first two lines
-				if (sscanf(line, "%s %lu %lu %lu %lu %lu %lu %lu %lu %lu",
-				           iface, &bytesIn, &dummy, &dummy, &dummy, &dummy,
-					   &dummy, &dummy, &dummy, &bytesOut) != 10) {
+				if (sscanf(line, "%31s %lu %lu %lu %lu %lu %lu %lu %lu %lu",
+				           iface, &bytes_in,
+				           &dummy, &dummy, &dummy, &dummy,
+				           &dummy, &dummy, &dummy,
+				           &bytes_out) != 10) {
 					g_warning("Skipping invalid line: %s", line);
 				} else if (g_strcmp0(iface, "lo") != 0) {
-					totalIn += bytesIn;
-					totalOut += bytesOut;
+					total_in += bytes_in;
+					total_out += bytes_out;
 				}
 				line = NULL;
 			}
@@ -452,638 +348,246 @@ next_net (void)
 		}
 	}
 
-	if (!initialized) {
-		initialized = TRUE;
-		goto finish;
+	if ((net_info.last_total_in != 0.) && (net_info.last_total_out != 0.)) {
+		net_info.total_in = (total_in - net_info.last_total_in);
+		net_info.total_out = (total_out - net_info.last_total_out);
 	}
 
-	net_info.bytesIn = (totalIn - lastTotalIn);
-	net_info.bytesOut = (totalOut - lastTotalOut);
-
-  finish:
-	close(fd);
-	lastTotalOut = totalOut;
-	lastTotalIn = totalIn;
+	net_info.last_total_in = total_in;
+	net_info.last_total_out = total_out;
+	g_free(buf);
 }
 
-static void
-next_mem (void)
+static void G_GNUC_NORETURN
+sample_thread (gpointer data)
 {
-	static gboolean initialized = FALSE;
-
-	gdouble memTotal = 0;
-	gdouble memFree = 0;
-	gdouble swapTotal = 0;
-	gdouble swapFree = 0;
-	gdouble cached = 0;
-	int fd;
-	char buf[4096];
-	char *line;
-	int i;
-
-
-	if ((fd = open("/proc/meminfo", O_RDONLY)) < 0) {
-		g_warning("Failed to open /proc/meminfo");
-		return;
-	}
-
-	read(fd, buf, sizeof(buf));
-	buf[sizeof(buf) - 1] = '\0';
-	line = buf;
-
-	for (i = 0; buf[i]; i++) {
-		if (buf[i] == '\n') {
-			buf[i] = '\0';
-			if (g_str_has_prefix(line, "MemTotal:")) {
-				if (sscanf(line, "MemTotal: %lf", &memTotal) != 1) {
-					g_warning("Failed to read MemTotal");
-					goto error;
-				}
-			} else if (g_str_has_prefix(line, "MemFree:")) {
-				if (sscanf(line, "MemFree: %lf", &memFree) != 1) {
-					g_warning("Failed to read MemFree");
-					goto error;
-				}
-			} else if (g_str_has_prefix(line, "SwapTotal:")) {
-				if (sscanf(line, "SwapTotal: %lf", &swapTotal) != 1) {
-					g_warning("Failed to read SwapTotal");
-					goto error;
-				}
-			} else if (g_str_has_prefix(line, "SwapFree:")) {
-				if (sscanf(line, "SwapFree: %lf", &swapFree) != 1) {
-					g_warning("Failed to read SwapFree");
-					goto error;
-				}
-			} else if (g_str_has_prefix(line, "Cached:")) {
-				if (sscanf(line, "Cached: %lf", &cached) != 1) {
-					g_warning("Failed to read Cached");
-					goto error;
-				}
-			}
-			line = &buf[i + 1];
-		}
-	}
-
-	if (!initialized) {
-		initialized = TRUE;
-		goto finish;
-	}
-
-	mem_info.memFree = (memTotal - cached - memFree) / memTotal;
-	mem_info.swapFree = (swapTotal - swapFree) / swapTotal;
-
-  finish:
-  error:
-  	close(fd);
-}
-
-static void
-next_pmem (void)
-{
-	static char *path = NULL;
-	int fd;
-	char buf[1024];
-	long size = 0;
-	long resident = 0;
-
-	if (G_UNLIKELY(!path)) {
-		path = g_strdup_printf("/proc/%d/statm", pid);
-	}
-
-	fd = open(path, O_RDONLY);
-	read(fd, buf, sizeof(buf));
-	sscanf(buf, "%ld %ld", &size, &resident);
-	pmem_info.size = size;
-	pmem_info.resident = resident;
-	close(fd);
-}
-
-static void
-next_sched (void)
-{
-	static char *path = NULL;
-	static gdouble last_vruntime = 0;
-	gdouble vruntime = 0;
-	int fd;
-	char buf[4096];
-	char name[128];
-	char *line;
-	gint i;
-
-	if (G_UNLIKELY(!path)) {
-		path = g_strdup_printf("/proc/%d/sched", pid);
-	}
-
-	fd = open(path, O_RDONLY);
-	memset(buf, 0, sizeof(buf));
-	read(fd, buf, sizeof(buf));
-	buf[sizeof(buf) - 1] = '\0';
-	line = buf;
-	for (i = 0; buf[i]; i++) {
-		if (buf[i] == '\n') {
-			buf[i] = '\0';
-			if (g_str_has_prefix(line, "se.vruntime")) {
-				if (sscanf(line, "%s : %lf", name, &vruntime) != 2) {
-					g_printerr("Failed to parse vruntime.\n");
-					break;
-				}
-				sched_info.vruntime = (vruntime - last_vruntime);
-				break;
-			}
-			line = &buf[++i];
-		}
-	}
-	close(fd);
-	last_vruntime = vruntime;
-}
-
-static void
-next_threads (void)
-{
-	static gchar *path = NULL;
-	gint n_threads = 0;
-	GDir *dir;
-
-	if (G_UNLIKELY(!path)) {
-		path = g_strdup_printf("/proc/%d/task", pid);
-	}
-
-	if (!(dir = g_dir_open(path, 0, NULL))) {
-		return;
-	}
-	while (g_dir_read_name(dir)) {
-		n_threads++;
-	}
-	g_dir_close(dir);
-	thread_info.n_threads = n_threads;
-}
-
-static inline GtkWidget*
-new_label_container (void)
-{
-	GtkWidget *align;
-	GtkWidget *hbox;
-
-	align = gtk_alignment_new(.5, .5, 1., 1.);
-	gtk_alignment_set_padding(GTK_ALIGNMENT(align), 0, 0, 83, 0);
-	hbox = gtk_hbox_new(TRUE, 0);
-	gtk_container_add(GTK_CONTAINER(align), hbox);
-	//gtk_box_pack_start(GTK_BOX(vbox), align, FALSE, TRUE, 0);
-	gtk_widget_show(align);
-	return hbox;
-}
-
-static GtkWidget*
-create_main_window (void)
-{
-	GtkWidget *window;
-	GtkWidget *load_label;
-	GtkWidget *cpu_label;
-	GtkWidget *net_label;
-	GtkWidget *mem_label;
-	GtkWidget *hbox;
-	GtkWidget *label;
-	GtkWidget *group;
-#if 0
-	GtkWidget *heat;
-	GtkWidget *heat2;
-#endif
-	UberRange cpu_range = { 0., 100., 100. };
-	gint i;
-
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_container_set_border_width(GTK_CONTAINER(window), 12);
-	gtk_window_set_title(GTK_WINDOW(window), _("UberGraph"));
-	gtk_window_set_default_size(GTK_WINDOW(window), 640, 480);
-	gtk_widget_show(window);
-
-	vbox = gtk_vbox_new(TRUE, 6);
-	gtk_container_add(GTK_CONTAINER(window), vbox);
-	gtk_widget_show(vbox);
-
-	group = gtk_vbox_new(FALSE, 3);
-	hbox = gtk_hbox_new(FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(vbox), group, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(group), hbox, TRUE, TRUE, 0);
-	gtk_widget_show(hbox);
-	gtk_widget_show(group);
-
-	cpu_label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(cpu_label), "<b>CPU</b>");
-	gtk_box_pack_start(GTK_BOX(hbox), cpu_label, FALSE, FALSE, 0);
-	gtk_misc_set_alignment(GTK_MISC(cpu_label), .5, .5);
-	g_object_set(cpu_label, "angle", 90., NULL);
-	gtk_widget_show(cpu_label);
-
-	#define SET_LINE_COLOR(g, n, c) \
-		G_STMT_START { \
-			GdkColor gc; \
-			gdk_color_parse(c, &gc); \
-			uber_graph_set_line_color(UBER_GRAPH(g), n, &gc); \
-		} G_STMT_END
-
-	cpu_graph = create_graph();
-	gtk_box_pack_start(GTK_BOX(hbox), cpu_graph, TRUE, TRUE, 0);
-	uber_graph_set_show_xlabel(UBER_GRAPH(cpu_graph), TRUE);
-	uber_graph_set_format(UBER_GRAPH(cpu_graph), UBER_GRAPH_PERCENT);
-	uber_graph_set_yautoscale(UBER_GRAPH(cpu_graph), FALSE);
-	uber_graph_set_yrange(UBER_GRAPH(cpu_graph), &cpu_range);
-	//uber_graph_add_line(UBER_GRAPH(cpu_graph));
-	//SET_LINE_COLOR(cpu_graph, 1, "#2e3436");
-	uber_graph_set_value_func(UBER_GRAPH(cpu_graph), get_cpu, NULL, NULL);
-
-	hbox = new_label_container();
-	gtk_box_pack_start(GTK_BOX(group), gtk_widget_get_parent(hbox), FALSE, TRUE, 0);
-	//add_label(hbox, "Total CPU", "#2e3436");
-	for (i = 1; i <= get_nprocs(); i++) {
-		char *text = g_strdup_printf("CPU%d", i);
-
-		uber_graph_add_line(UBER_GRAPH(cpu_graph));
-		SET_LINE_COLOR(cpu_graph, i, (gchar *)cpu_colors[(i-1) % G_N_ELEMENTS(cpu_colors)]);
-		label = add_label(hbox, text, (gchar *)cpu_colors[(i-1) % G_N_ELEMENTS(cpu_colors)]);
-		uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(cpu_graph), i);
-		g_ptr_array_add(labels, label);
-		g_free(text);
-	}
-	gtk_widget_show(hbox);
-	cpu_label_hbox = hbox;
-
-	group = gtk_vbox_new(FALSE, 3);
-	hbox = gtk_hbox_new(FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(group), hbox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(vbox), group, TRUE, TRUE, 0);
-	gtk_widget_show(hbox);
-	gtk_widget_show(group);
-
-	load_label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(load_label), "<b>Load</b>");
-	g_object_set(load_label, "angle", 90., NULL);
-	gtk_box_pack_start(GTK_BOX(hbox), load_label, FALSE, TRUE, 0);
-	gtk_misc_set_alignment(GTK_MISC(load_label), .0, .5);
-	gtk_widget_show(load_label);
-
-	load_graph = create_graph();
-	gtk_box_pack_start(GTK_BOX(hbox), load_graph, TRUE, TRUE, 0);
-	uber_graph_set_yautoscale(UBER_GRAPH(load_graph), TRUE);
-	uber_graph_add_line(UBER_GRAPH(load_graph));
-	uber_graph_add_line(UBER_GRAPH(load_graph));
-	uber_graph_add_line(UBER_GRAPH(load_graph));
-	SET_LINE_COLOR(load_graph, 1, "#4e9a06");
-	SET_LINE_COLOR(load_graph, 2, "#f57900");
-	SET_LINE_COLOR(load_graph, 3, "#cc0000");
-	uber_graph_set_value_func(UBER_GRAPH(load_graph), get_load, NULL, NULL);
-
-	hbox = new_label_container();
-	gtk_box_pack_start(GTK_BOX(group), gtk_widget_get_parent(hbox), FALSE, TRUE, 0);
-	label = add_label(hbox, "5 Minute Average", "#4e9a06");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(load_graph), 1);
-	label = add_label(hbox, "10 Minute Average", "#f57900");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(load_graph), 2);
-	label = add_label(hbox, "15 Minute Average", "#cc0000");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(load_graph), 3);
-	load_label_hbox = hbox;
-
-	group = gtk_vbox_new(FALSE, 3);
-	hbox = gtk_hbox_new(FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(group), hbox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(vbox), group, TRUE, TRUE, 0);
-	gtk_widget_show(hbox);
-	gtk_widget_show(group);
-
-	net_label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(net_label), "<b>Network</b>");
-	g_object_set(net_label, "angle", 90., NULL);
-	gtk_box_pack_start(GTK_BOX(hbox), net_label, FALSE, TRUE, 0);
-	gtk_misc_set_alignment(GTK_MISC(net_label), .0, .5);
-	gtk_widget_show(net_label);
-
-	net_graph = create_graph();
-	gtk_box_pack_start(GTK_BOX(hbox), net_graph, TRUE, TRUE, 0);
-	uber_graph_set_format(UBER_GRAPH(net_graph), UBER_GRAPH_DIRECT1024);
-	uber_graph_set_yautoscale(UBER_GRAPH(net_graph), TRUE);
-	uber_graph_add_line(UBER_GRAPH(net_graph));
-	uber_graph_add_line(UBER_GRAPH(net_graph));
-	SET_LINE_COLOR(net_graph, 1, "#a40000");
-	SET_LINE_COLOR(net_graph, 2, "#4e9a06");
-	uber_graph_set_value_func(UBER_GRAPH(net_graph), get_net, NULL, NULL);
-
-	hbox = new_label_container();
-	gtk_box_pack_start(GTK_BOX(group), gtk_widget_get_parent(hbox), FALSE, TRUE, 0);
-	label = add_label(hbox, "Bytes In", "#a40000");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(net_graph), 1);
-	label = add_label(hbox, "Bytes Out", "#4e9a06");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(net_graph), 2);
-	net_label_hbox = hbox;
-
-	group = gtk_vbox_new(FALSE, 3);
-	hbox = gtk_hbox_new(FALSE, 3);
-	gtk_box_pack_start(GTK_BOX(group), hbox, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(vbox), group, TRUE, TRUE, 0);
-	gtk_widget_show(group);
-	gtk_widget_show(hbox);
-
-	mem_label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(mem_label), "<b>Memory</b>");
-	g_object_set(mem_label, "angle", 90., NULL);
-	gtk_box_pack_start(GTK_BOX(hbox), mem_label, FALSE, TRUE, 0);
-	gtk_misc_set_alignment(GTK_MISC(mem_label), .0, .5);
-	gtk_widget_show(mem_label);
-
-	mem_graph = create_graph();
-	uber_graph_set_show_xlabel(UBER_GRAPH(mem_graph), TRUE);
-	gtk_box_pack_start(GTK_BOX(hbox), mem_graph, TRUE, TRUE, 0);
-	uber_graph_set_format(UBER_GRAPH(mem_graph), UBER_GRAPH_PERCENT);
-	uber_graph_set_yautoscale(UBER_GRAPH(mem_graph), FALSE);
-	uber_graph_add_line(UBER_GRAPH(mem_graph));
-	uber_graph_add_line(UBER_GRAPH(mem_graph));
-	SET_LINE_COLOR(mem_graph, 1, "#3465a4");
-	SET_LINE_COLOR(mem_graph, 2, "#8ae234");
-	uber_graph_set_value_func(UBER_GRAPH(mem_graph), get_mem, NULL, NULL);
-
-	hbox = new_label_container();
-	gtk_box_pack_start(GTK_BOX(group), gtk_widget_get_parent(hbox), FALSE, TRUE, 0);
-	label = add_label(hbox, "Memory Free", "#3465a4");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(mem_graph), 1);
-	label = add_label(hbox, "Swap Free", "#8ae234");
-	uber_label_bind_graph(UBER_LABEL(label), UBER_GRAPH(mem_graph), 2);
-	mem_label_hbox = hbox;
-
-#if 0
-	heat = uber_heat_map_new();
-	uber_heat_map_set_block_size(UBER_HEAT_MAP(heat),
-	                             60, TRUE,
-	                             5, FALSE);
-	gtk_container_add(GTK_CONTAINER(vbox), heat);
-	gtk_widget_show(heat);
-
-	heat2 = uber_heat_map_new();
-	uber_heat_map_set_block_size(UBER_HEAT_MAP(heat2),
-	                             5, FALSE,
-	                             5, TRUE);
-	gtk_container_add(GTK_CONTAINER(vbox), heat2);
-	gtk_widget_show(heat2);
-#endif
-
-	next_load();
-	next_cpu();
-	next_mem();
-	next_net();
-	next_pmem();
-	next_sched();
-	next_threads();
-
-	next_load();
-	next_cpu();
-	next_mem();
-	next_net();
-	next_pmem();
-	next_sched();
-
-	return window;
-}
-
-static gboolean
-get_pmem (UberGraph *graph,
-          gint       line,
-          gdouble   *value,
-          gpointer   user_data)
-{
-	switch (line) {
-	case 1:
-		*value = pmem_info.size;
-		break;
-	case 2:
-		*value = pmem_info.resident;
-		break;
-	default:
-		*value = 0;
-		return FALSE;
-	}
-	return TRUE;
-}
-
-static gboolean
-get_sched (UberGraph *graph,
-           gint       line,
-           gdouble   *value,
-           gpointer   user_data)
-{
-	switch (line) {
-	case 1:
-		*value = sched_info.vruntime;
-		break;
-	default:
-		*value = 0;
-		return FALSE;
-	}
-	return TRUE;
-}
-
-static void
-create_pid_graphs (GPid pid)
-{
-	GtkWidget *label;
-
-	label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label), "<b>Process Memory</b>");
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 0);
-	gtk_misc_set_alignment(GTK_MISC(label), .0, .5);
-	gtk_widget_show(label);
-
-	pmem_graph = create_graph();
-	uber_graph_set_yautoscale(UBER_GRAPH(pmem_graph), TRUE);
-	uber_graph_add_line(UBER_GRAPH(pmem_graph));
-	uber_graph_add_line(UBER_GRAPH(pmem_graph));
-	uber_graph_set_value_func(UBER_GRAPH(pmem_graph), get_pmem, NULL, NULL);
-
-	label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label), "<b>Scheduler Time</b>");
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 0);
-	gtk_misc_set_alignment(GTK_MISC(label), .0, .5);
-	gtk_widget_show(label);
-
-	sched_graph = create_graph();
-	uber_graph_set_yautoscale(UBER_GRAPH(sched_graph), TRUE);
-	uber_graph_add_line(UBER_GRAPH(sched_graph));
-	uber_graph_set_value_func(UBER_GRAPH(sched_graph), get_sched, NULL, NULL);
-
-	label = gtk_label_new(NULL);
-	gtk_label_set_markup(GTK_LABEL(label), "<b>Thread Count</b>");
-	gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, TRUE, 0);
-	gtk_misc_set_alignment(GTK_MISC(label), .0, .5);
-	gtk_widget_show(label);
-
-	thread_graph = create_graph();
-	uber_graph_set_format(UBER_GRAPH(thread_graph), UBER_GRAPH_INTEGRAL);
-	uber_graph_set_yautoscale(UBER_GRAPH(thread_graph), TRUE);
-	uber_graph_add_line(UBER_GRAPH(thread_graph));
-	uber_graph_set_value_func(UBER_GRAPH(thread_graph), get_threads, NULL, NULL);
-}
-
-static volatile gboolean quit = FALSE;
-
-static gpointer
-sample_func (gpointer data)
-{
-	while (!quit) {
-		DEBUG("Running samplers ...");
-		next_load();
-		next_cpu();
-		next_net();
-		next_mem();
-		next_pmem();
-		next_sched();
-		next_threads();
+	while (TRUE) {
 		g_usleep(G_USEC_PER_SEC);
+		next_cpu_info();
+		next_cpu_freq_info();
+		next_net_info();
+		if (want_blktrace) {
+			uber_blktrace_next();
+		}
 	}
-	return NULL;
 }
 
 static gboolean
-test_4_foreach (UberBuffer *buffer,
-                gdouble     value,
-                gpointer    user_data)
+has_freq_scaling (gint cpu)
 {
-	static gint count = 0;
-	gint v = value;
+	gboolean ret;
+	gchar *path;
 
-	g_assert_cmpint(v, ==, 4 - count);
-	count++;
-	return (value == 1.);
+	path = g_strdup_printf("/sys/devices/system/cpu/cpu%d/cpufreq", cpu);
+	ret = g_file_test(path, G_FILE_TEST_IS_DIR);
+	g_free(path);
+	return ret;
 }
 
+#if 0
 static gboolean
-test_2_foreach (UberBuffer *buffer,
-                gdouble     value,
-                gpointer    user_data)
+dummy_scatter_func (UberScatter  *scatter,   /* IN */
+                    GArray      **array,     /* OUT */
+                    gpointer      user_data) /* IN */
 {
-	static gint count = 0;
-	gint v = value;
+	gdouble val;
+	gint i;
 
-	g_assert_cmpint(v, ==, 4 - count);
-	count++;
-	return (value == 3.);
-}
-
-static gboolean
-test_2e_foreach (UberBuffer *buffer,
-                 gdouble     value,
-                 gpointer    user_data)
-{
-	static gint count = 0;
-	gint v = value;
-
-	if (count == 0 || count == 1) {
-		g_assert_cmpint(v, ==, 4. - count);
-	} else {
-		g_assert(value == -INFINITY);
+	*array = g_array_new(FALSE, FALSE, sizeof(gdouble));
+	for (i = 0; i < 4; i++) {
+		val = g_random_double_range(0., 100.);
+		g_array_append_val(*array, val);
 	}
-	count++;
-	return FALSE;
+	return TRUE;
 }
-
-static void
-run_buffer_tests (void)
-{
-	UberBuffer *buf;
-
-	buf = uber_buffer_new();
-	g_assert(buf);
-
-	uber_buffer_append(buf, 1.);
-	uber_buffer_append(buf, 2.);
-	uber_buffer_append(buf, 3.);
-	uber_buffer_append(buf, 4.);
-	uber_buffer_foreach(buf, test_4_foreach, NULL);
-
-	uber_buffer_set_size(buf, 2);
-	g_assert_cmpint(buf->len, ==, 2);
-	g_assert_cmpint(buf->pos, ==, 0);
-	uber_buffer_foreach(buf, test_2_foreach, NULL);
-
-	uber_buffer_set_size(buf, 32);
-	g_assert_cmpint(buf->len, ==, 32);
-	g_assert_cmpint(buf->pos, ==, 0);
-	uber_buffer_foreach(buf, test_2e_foreach, NULL);
-}
-
-static void
-child_exited (GPid     pid,
-              gint     status,
-              gpointer data)
-{
-	g_printerr("Child exited.\n");
-	reaped = TRUE;
-	gtk_main_quit();
-}
+#endif
 
 gint
-main (gint   argc,
-      gchar *argv[])
+main (gint   argc,   /* IN */
+      gchar *argv[]) /* IN */
 {
-	GError *error = NULL;
+	gdouble dashes[] = { 1.0, 4.0 };
+	UberRange cpu_range = { 0., 100., 100. };
+	UberRange net_range = { 0., 512., 512. };
+	UberRange ui_range = { 0., 10., 10. };
 	GtkWidget *window;
-	gchar **args;
+	GtkWidget *cpu;
+	GtkWidget *net;
+	GtkWidget *line;
+	GtkWidget *map;
+	GtkWidget *scatter;
+	GtkWidget *label;
+	GtkAccelGroup *ag;
+	GdkColor color;
+	gint lineno;
+	gint nprocs;
 	gint i;
+	gint mod;
 
-	g_set_application_name(_("uber-graph"));
 	g_thread_init(NULL);
 	gtk_init(&argc, &argv);
-
-#if 1
-	/* run the UberBuffer tests */
-	run_buffer_tests();
+	nprocs = get_nprocs();
+	/*
+	 * Check for blktrace hack.
+	 */
+	if (argc > 1 && (g_strcmp0(argv[1], "--i-can-haz-blktrace") == 0)) {
+		want_blktrace = TRUE;
+	}
+	/*
+	 * Warm up differential samplers.
+	 */
+	next_cpu_info();
+	next_cpu_freq_info();
+	if (want_blktrace) {
+		uber_blktrace_init();
+	}
+	/*
+	 * Install event hook to track how many X events we are doing.
+	 */
+	gdk_event_handler_set(gdk_event_hook, NULL, NULL);
+	/*
+	 * Create window and graphs.
+	 */
+	window = uber_window_new();
+	cpu = uber_line_graph_new();
+	net = uber_line_graph_new();
+	line = uber_line_graph_new();
+	map = uber_heat_map_new();
+	scatter = uber_scatter_new();
+	/*
+	 * Configure CPU graph.
+	 */
+	uber_line_graph_set_autoscale(UBER_LINE_GRAPH(cpu), FALSE);
+	uber_graph_set_format(UBER_GRAPH(cpu), UBER_GRAPH_FORMAT_PERCENT);
+	uber_line_graph_set_range(UBER_LINE_GRAPH(cpu), &cpu_range);
+	uber_line_graph_set_data_func(UBER_LINE_GRAPH(cpu),
+	                              get_cpu_info, NULL, NULL);
+	for (i = 0; i < nprocs; i++) {
+		mod = i % G_N_ELEMENTS(default_colors);
+		gdk_color_parse(default_colors[mod], &color);
+		label = uber_label_new();
+		uber_label_set_color(UBER_LABEL(label), &color);
+		uber_line_graph_add_line(UBER_LINE_GRAPH(cpu), &color,
+		                         UBER_LABEL(label));
+		cpu_info.labels[i] = label;
+		/*
+		 * XXX: Add the line regardless. Just dont populate it if we don't
+		 *      have data.
+		 */
+		lineno = uber_line_graph_add_line(UBER_LINE_GRAPH(cpu), &color, NULL);
+		if (has_freq_scaling(i)) {
+			uber_line_graph_set_line_dash(UBER_LINE_GRAPH(cpu), lineno,
+			                              dashes, G_N_ELEMENTS(dashes), 0);
+			uber_line_graph_set_line_alpha(UBER_LINE_GRAPH(cpu), lineno, 1.);
+		}
+	}
+	/*
+	 * Add lines for GDK/X events.
+	 */
+	uber_line_graph_set_range(UBER_LINE_GRAPH(line), &ui_range);
+	label = uber_label_new();
+	uber_label_set_text(UBER_LABEL(label), "GDK Events");
+	gdk_color_parse("#729fcf", &color);
+	uber_line_graph_add_line(UBER_LINE_GRAPH(line), &color, UBER_LABEL(label));
+	label = uber_label_new();
+	uber_label_set_text(UBER_LABEL(label), "X Events");
+	gdk_color_parse("#a40000", &color);
+	uber_line_graph_add_line(UBER_LINE_GRAPH(line), &color, UBER_LABEL(label));
+	uber_line_graph_set_data_func(UBER_LINE_GRAPH(line),
+	                              get_xevent_info, NULL, NULL);
+	/*
+	 * Add lines for bytes in/out.
+	 */
+	uber_line_graph_set_range(UBER_LINE_GRAPH(net), &net_range);
+	uber_line_graph_set_data_func(UBER_LINE_GRAPH(net),
+	                              get_net_info, NULL, NULL);
+	uber_graph_set_format(UBER_GRAPH(net), UBER_GRAPH_FORMAT_DIRECT1024);
+	label = uber_label_new();
+	uber_label_set_text(UBER_LABEL(label), "Bytes In");
+	gdk_color_parse("#a40000", &color);
+	uber_line_graph_add_line(UBER_LINE_GRAPH(net), &color, UBER_LABEL(label));
+	label = uber_label_new();
+	uber_label_set_text(UBER_LABEL(label), "Bytes Out");
+	gdk_color_parse("#4e9a06", &color);
+	uber_line_graph_add_line(UBER_LINE_GRAPH(net), &color, UBER_LABEL(label));
+	/*
+	 * Configure heat map.
+	 */
+	uber_graph_set_show_ylines(UBER_GRAPH(map), FALSE);
+	gdk_color_parse(default_colors[0], &color);
+	uber_heat_map_set_fg_color(UBER_HEAT_MAP(map), &color);
+#if 0
+	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
+	                            uber_blktrace_get,
+	                            NULL);
 #endif
+	/*
+	 * Configure scatter.
+	 */
+	if (want_blktrace) {
+		uber_graph_set_show_ylines(UBER_GRAPH(scatter), FALSE);
+		gdk_color_parse(default_colors[3], &color);
+		uber_scatter_set_fg_color(UBER_SCATTER(scatter), &color);
+		uber_scatter_set_data_func(UBER_SCATTER(scatter),
+#if 0
+								   //dummy_scatter_func, NULL, NULL);
+#endif
+								   (UberScatterFunc)uber_blktrace_get, NULL, NULL);
+		uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(scatter), "IOPS By Size");
+		uber_graph_set_show_xlabels(UBER_GRAPH(scatter), TRUE);
+		gtk_widget_show(scatter);
 
-	labels = g_ptr_array_new();
-
-	/* initialize sources to -INFINITY */
-	cpu_info.cpuUsage = -INFINITY;
-	net_info.bytesIn = -INFINITY;
-	net_info.bytesOut = -INFINITY;
-	mem_info.memFree = -INFINITY;
-	mem_info.swapFree = -INFINITY;
-	load_info.load5 = -INFINITY;
-	load_info.load10 = -INFINITY;
-	load_info.load15 = -INFINITY;
-
-	/* if we need to spawn a process, do so */
-	if (argc > 1) {
-		g_print("Spawning subprocess ...\n");
-		args = g_new0(gchar*, argc);
-		for (i = 0; i < argc - 1; i++) {
-			args[i] = g_strdup(argv[i + 1]);
-		}
-		if (!g_spawn_async(".", args, NULL,
-		                   G_SPAWN_SEARCH_PATH | G_SPAWN_LEAVE_DESCRIPTORS_OPEN | G_SPAWN_DO_NOT_REAP_CHILD,
-		                   NULL, NULL,
-		                   &pid, &error)) {
-			g_printerr("%s\n", error->message);
-			g_clear_error(&error);
-			return EXIT_FAILURE;
-		}
-		g_child_watch_add(pid, child_exited, NULL);
-		g_print("Process %d started.\n", (gint)pid);
+		uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(map), "IO Latency");
+		uber_graph_set_show_xlabels(UBER_GRAPH(map), FALSE);
+		gtk_widget_show(map);
 	}
-
-	/* run the test gui */
-	window = create_main_window();
-
-	/* add application specific graphs */
-	if (pid) {
-		create_pid_graphs(pid);
-	}
-
-	g_signal_connect(window, "delete-event", gtk_main_quit, NULL);
-	g_thread_create(sample_func, NULL, FALSE, NULL);
-
+	/*
+	 * Add graphs.
+	 */
+	uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(cpu), "CPU");
+	uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(net), "Network");
+	uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(line), "UI Events");
+	/*
+	 * Disable X tick labels by default (except last).
+	 */
+	uber_graph_set_show_xlabels(UBER_GRAPH(cpu), FALSE);
+	uber_graph_set_show_xlabels(UBER_GRAPH(net), FALSE);
+	uber_graph_set_show_xlabels(UBER_GRAPH(line), FALSE);
+	/*
+	 * Show widgets.
+	 */
+	gtk_widget_show(net);
+	gtk_widget_show(line);
+	gtk_widget_show(cpu);
+	gtk_widget_show(window);
+	/*
+	 * Show cpu labels by default.
+	 */
+	uber_window_show_labels(UBER_WINDOW(window), UBER_GRAPH(cpu));
+	/*
+	 * Setup accelerators.
+	 */
+	ag = gtk_accel_group_new();
+	gtk_accel_group_connect(ag, GDK_w, GDK_CONTROL_MASK, GTK_ACCEL_MASK,
+	                        g_cclosure_new(gtk_main_quit, NULL, NULL));
+	gtk_window_add_accel_group(GTK_WINDOW(window), ag);
+	/*
+	 * Attach signals.
+	 */
+	g_signal_connect(window,
+	                 "delete-event",
+	                 G_CALLBACK(gtk_main_quit),
+	                 NULL);
+	/*
+	 * Start sampling thread.
+	 */
+	g_thread_create((GThreadFunc)sample_thread, NULL, FALSE, NULL);
 	gtk_main();
-
-	/* kill child process if needed */
-	if (pid && !reaped) {
-		g_print("Exiting, killing child prcess.\n");
-		kill(pid, SIGINT);
+	/*
+	 * Cleanup after blktrace.
+	 */
+	if (want_blktrace) {
+		uber_blktrace_shutdown();
 	}
-
 	return EXIT_SUCCESS;
 }

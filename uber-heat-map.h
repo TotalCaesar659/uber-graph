@@ -19,9 +19,7 @@
 #ifndef __UBER_HEAT_MAP_H__
 #define __UBER_HEAT_MAP_H__
 
-#include <gtk/gtk.h>
-
-#include "uber-range.h"
+#include "uber-graph.h"
 
 G_BEGIN_DECLS
 
@@ -37,24 +35,13 @@ typedef struct _UberHeatMap        UberHeatMap;
 typedef struct _UberHeatMapClass   UberHeatMapClass;
 typedef struct _UberHeatMapPrivate UberHeatMapPrivate;
 
-/**
- * UberHeatMapFunc:
- * @map: A #UberHeatMap.
- * @values: A location to store an array of #gdouble<!-- -->'s.
- * @user_data: User data supplied to uber_heat_map_set_value_func().
- *
- * A callback to retrieve the next set of data for the graph.
- *
- * Returns: %TRUE if successful; otherwise %FALSE.
- * Side effects: None.
- */
 typedef gboolean (*UberHeatMapFunc) (UberHeatMap  *map,
                                      GArray      **values,
                                      gpointer      user_data);
 
 struct _UberHeatMap
 {
-	GtkDrawingArea parent;
+	UberGraph parent;
 
 	/*< private >*/
 	UberHeatMapPrivate *priv;
@@ -62,24 +49,17 @@ struct _UberHeatMap
 
 struct _UberHeatMapClass
 {
-	GtkDrawingAreaClass parent_class;
+	UberGraphClass parent_class;
 };
 
-GType      uber_heat_map_get_type       (void) G_GNUC_CONST;
-GtkWidget* uber_heat_map_new            (void);
-void       uber_heat_map_set_x_range    (UberHeatMap     *map,
-                                         const UberRange *x_range);
-void       uber_heat_map_set_y_range    (UberHeatMap     *map,
-                                         const UberRange *y_range);
-void       uber_heat_map_set_block_size (UberHeatMap     *map,
-                                         gint             width,
-                                         gboolean         width_is_count,
-                                         gint             height,
-                                         gboolean         height_is_count);
-void       uber_heat_map_set_value_func (UberHeatMap     *map,
-                                         UberHeatMapFunc  func,
-                                         gpointer         user_data,
-                                         GDestroyNotify   notify);
+GType      uber_heat_map_get_type      (void) G_GNUC_CONST;
+GtkWidget* uber_heat_map_new           (void);
+void       uber_heat_map_set_fg_color  (UberHeatMap     *map,
+                                        const GdkColor  *color);
+void       uber_heat_map_set_data_func (UberHeatMap     *map,
+                                        UberHeatMapFunc  func,
+                                        gpointer         user_data,
+                                        GDestroyNotify   destroy);
 
 G_END_DECLS
 

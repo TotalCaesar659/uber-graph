@@ -1,6 +1,6 @@
 all: uber-graph
 
-DISABLE_DEBUG := 1
+DISABLE_DEBUG := 0
 DISABLE_TRACE := 1
 
 WARNINGS =								\
@@ -38,15 +38,22 @@ TRACE_INCLUDES =							\
 	$(NULL)
 
 INCLUDES =								\
+	-I../								\
 	$(NULL)
 
 OBJECTS =								\
 	uber-graph.o							\
-	uber-buffer.o							\
-	uber-label.o							\
+	uber-line-graph.o						\
 	uber-heat-map.o							\
-	g-ring.o							\
+	uber-scatter.o							\
+	uber-window.o							\
+	uber-scale.o							\
+	uber-label.o							\
+	uber-blktrace.o							\
+	uber-frame-source.o						\
+	uber-timeout-interval.o						\
 	main.o								\
+	g-ring.o							\
 	$(NULL)
 
 ifeq ($(DISABLE_DEBUG),1)
@@ -56,6 +63,9 @@ endif
 ifeq ($(DISABLE_TRACE),0)
 	INCLUDES += $(TRACE_INCLUDES)
 endif
+
+g-ring.o: g-ring.c g-ring.h Makefile
+	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) g-ring.c $(shell pkg-config --cflags glib-2.0 gthread-2.0)
 
 main.o: main.c Makefile
 	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) main.c $(shell pkg-config --cflags gtk+-2.0 gthread-2.0)

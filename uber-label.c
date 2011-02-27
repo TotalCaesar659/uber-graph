@@ -24,38 +24,6 @@
 
 #include "uber-label.h"
 
-#ifdef UBER_TRACE
-#define TRACE(_f,...) \
-    G_STMT_START { \
-        g_log(G_LOG_DOMAIN, 1 << G_LOG_LEVEL_USER_SHIFT, _f, ## __VA_ARGS__); \
-    } G_STMT_END
-#define ENTRY TRACE("ENTRY: %s():%d", G_STRFUNC, __LINE__)
-#define EXIT \
-    G_STMT_START { \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__); \
-        return; \
-    } G_STMT_END
-#define RETURN(_r) \
-    G_STMT_START { \
-        TRACE(" EXIT: %s():%d", G_STRFUNC, __LINE__); \
-        return (_r); \
-	} G_STMT_END
-#define GOTO(_l) \
-    G_STMT_START { \
-        TRACE(" GOTO: %s():%d %s", G_STRFUNC, __LINE__, #_l); \
-        goto _l; \
-	} G_STMT_END
-#define CASE(_l) \
-    case _l: \
-        TRACE(" CASE: %s():%d %s", G_STRFUNC, __LINE__, #_l)
-#else
-#define ENTRY
-#define EXIT       return
-#define RETURN(_r) return (_r)
-#define GOTO(_l)   goto _l
-#define CASE(_l)   case _l:
-#endif
-
 /**
  * SECTION:uber-label.h
  * @title: UberLabel
@@ -73,9 +41,15 @@ struct _UberLabelPrivate
 	GtkWidget *label;
 	GdkColor   color;
 	gboolean   in_block;
-	UberGraph *graph;
-	gint       graph_line;
 };
+
+enum
+{
+	COLOR_CHANGED,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
 
 /**
  * uber_label_new:
@@ -90,9 +64,8 @@ uber_label_new (void)
 {
 	UberLabel *label;
 
-	ENTRY;
 	label = g_object_new(UBER_TYPE_LABEL, NULL);
-	RETURN(GTK_WIDGET(label));
+	return GTK_WIDGET(label);
 }
 
 /**
@@ -113,10 +86,8 @@ uber_label_set_text (UberLabel   *label, /* IN */
 
 	g_return_if_fail(UBER_IS_LABEL(label));
 
-	ENTRY;
 	priv = label->priv;
 	gtk_label_set_text(GTK_LABEL(priv->label), text);
-	EXIT;
 }
 
 /**
@@ -137,40 +108,8 @@ uber_label_set_color (UberLabel      *label, /* IN */
 
 	g_return_if_fail(UBER_IS_LABEL(label));
 
-	ENTRY;
 	priv = label->priv;
 	priv->color = *color;
-	EXIT;
-}
-
-/**
- * uber_label_bind_graph:
- * @label: A #UberLabel.
- *
- * Binds a particular line in the graph to the label.  Updating the labels
- * color will in turn update the line within the graph.
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-uber_label_bind_graph (UberLabel *label, /* IN */
-                       UberGraph *graph, /* IN */
-                       gint       line)  /* IN */
-{
-	UberLabelPrivate *priv;
-
-	g_return_if_fail(UBER_IS_LABEL(label));
-	g_return_if_fail(UBER_IS_GRAPH(graph));
-	g_return_if_fail(line > 0);
-
-	ENTRY;
-	priv = label->priv;
-	priv->graph = graph;
-	priv->graph_line = line;
-	g_object_add_weak_pointer(G_OBJECT(graph), (gpointer *)&priv->graph);
-	uber_graph_set_line_color(graph, line, &priv->color);
-	EXIT;
 }
 
 static void
@@ -184,7 +123,6 @@ uber_label_block_expose_event (GtkWidget      *block, /* IN */
 
 	g_return_if_fail(UBER_IS_LABEL(label));
 
-	ENTRY;
 	priv = label->priv;
 	gtk_widget_get_allocation(block, &alloc);
 	cr = gdk_cairo_create(event->window);
@@ -218,7 +156,6 @@ uber_label_block_expose_event (GtkWidget      *block, /* IN */
 	cairo_rectangle(cr, 1.5, 1.5, alloc.width - 3., alloc.height - 3.);
 	cairo_set_source_rgba(cr, 1., 1., 1., .5);
 	cairo_stroke(cr);
-	EXIT;
 }
 
 /**
@@ -237,11 +174,10 @@ uber_label_block_enter_notify_event (GtkWidget        *widget, /* IN */
 {
 	UberLabelPrivate *priv;
 
-	ENTRY;
 	priv = label->priv;
 	priv->in_block = TRUE;
 	gtk_widget_queue_draw(widget);
-	RETURN(FALSE);
+	return FALSE;
 }
 
 /**
@@ -260,11 +196,10 @@ uber_label_block_leave_notify_event (GtkWidget        *widget, /* IN */
 {
 	UberLabelPrivate *priv;
 
-	ENTRY;
 	priv = label->priv;
 	priv->in_block = FALSE;
 	gtk_widget_queue_draw(widget);
-	RETURN(FALSE);
+	return FALSE;
 }
 
 /**
@@ -289,20 +224,23 @@ uber_label_block_button_press_event (GtkWidget      *widget, /* IN */
 
 	g_return_val_if_fail(UBER_IS_LABEL(label), FALSE);
 
-	ENTRY;
 	priv = label->priv;
 	dialog = gtk_color_selection_dialog_new("");
-	selection = gtk_color_selection_dialog_get_color_selection(GTK_COLOR_SELECTION_DIALOG(dialog));
-	gtk_color_selection_set_current_color(GTK_COLOR_SELECTION(selection), &priv->color);
+	selection = gtk_color_selection_dialog_get_color_selection(
+			GTK_COLOR_SELECTION_DIALOG(dialog));
+	gtk_color_selection_set_current_color(
+			GTK_COLOR_SELECTION(selection),
+			&priv->color);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
-		gtk_color_selection_get_current_color(GTK_COLOR_SELECTION(selection), &priv->color);
+		gtk_color_selection_get_current_color(
+				GTK_COLOR_SELECTION(selection),
+				&priv->color);
 		gtk_widget_queue_draw(widget);
-		if (priv->graph) {
-			uber_graph_set_line_color(priv->graph, priv->graph_line, &priv->color);
-		}
+		g_signal_emit(label, signals[COLOR_CHANGED],
+		              0, &priv->color);
 	}
 	gtk_widget_destroy(dialog);
-	RETURN(FALSE);
+	return FALSE;
 }
 
 /**
@@ -318,9 +256,7 @@ uber_label_block_button_press_event (GtkWidget      *widget, /* IN */
 static void
 uber_label_finalize (GObject *object) /* IN */
 {
-	ENTRY;
 	G_OBJECT_CLASS(uber_label_parent_class)->finalize(object);
-	EXIT;
 }
 
 /**
@@ -337,11 +273,27 @@ uber_label_class_init (UberLabelClass *klass) /* IN */
 {
 	GObjectClass *object_class;
 
-	ENTRY;
 	object_class = G_OBJECT_CLASS(klass);
 	object_class->finalize = uber_label_finalize;
 	g_type_class_add_private(object_class, sizeof(UberLabelPrivate));
-	EXIT;
+
+	/**
+	 * UberLabel::color-changed:
+	 * @label: An #UberLabel.
+	 * @color: A #GdkColor.
+	 *
+	 * Signal emitted when the color is changed.
+	 */
+	signals[COLOR_CHANGED] = g_signal_new("color-changed",
+	                                      UBER_TYPE_LABEL,
+	                                      G_SIGNAL_RUN_FIRST,
+	                                      0,
+	                                      NULL,
+	                                      NULL,
+	                                      g_cclosure_marshal_VOID__POINTER,
+	                                      G_TYPE_NONE,
+	                                      1,
+	                                      G_TYPE_POINTER);
 }
 
 /**
@@ -358,7 +310,6 @@ uber_label_init (UberLabel *label) /* IN */
 {
 	UberLabelPrivate *priv;
 
-	ENTRY;
 	label->priv = G_TYPE_INSTANCE_GET_PRIVATE(label,
 	                                          UBER_TYPE_LABEL,
 	                                          UberLabelPrivate);
@@ -397,5 +348,4 @@ uber_label_init (UberLabel *label) /* IN */
 	gtk_widget_show(priv->hbox);
 	gtk_widget_show(priv->block);
 	gtk_widget_show(priv->label);
-	EXIT;
 }
