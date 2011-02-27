@@ -28,6 +28,7 @@
 #include <gdk/gdkkeysyms.h>
 
 #include "uber.h"
+#include "uber-blktrace.h"
 #include "uber-window.h"
 
 typedef struct
@@ -56,7 +57,7 @@ typedef struct
 	gulong x_event_count;
 } UIInfo;
 
-//static gboolean     want_blktrace    = FALSE;
+static gboolean     want_blktrace    = FALSE;
 static UIInfo       ui_info          = { 0 };
 static CpuInfo      cpu_info         = { 0 };
 static NetInfo      net_info         = { 0 };
@@ -366,9 +367,9 @@ sample_thread (gpointer data)
 		next_cpu_info();
 		next_cpu_freq_info();
 		next_net_info();
-//		if (want_blktrace) {
-//			uber_blktrace_next();
-//		}
+		if (want_blktrace) {
+			uber_blktrace_next();
+		}
 	}
 }
 
@@ -430,17 +431,17 @@ main (gint   argc,   /* IN */
 	/*
 	 * Check for blktrace hack.
 	 */
-//	if (argc > 1 && (g_strcmp0(argv[1], "--i-can-haz-blktrace") == 0)) {
-//		want_blktrace = TRUE;
-//	}
+	if (argc > 1 && (g_strcmp0(argv[1], "--i-can-haz-blktrace") == 0)) {
+		want_blktrace = TRUE;
+	}
 	/*
 	 * Warm up differential samplers.
 	 */
 	next_cpu_info();
 	next_cpu_freq_info();
-//	if (want_blktrace) {
-//		uber_blktrace_init();
-//	}
+	if (want_blktrace) {
+		uber_blktrace_init();
+	}
 	/*
 	 * Install event hook to track how many X events we are doing.
 	 */
@@ -516,24 +517,21 @@ main (gint   argc,   /* IN */
 	uber_graph_set_show_ylines(UBER_GRAPH(map), FALSE);
 	gdk_color_parse(default_colors[0], &color);
 	uber_heat_map_set_fg_color(UBER_HEAT_MAP(map), &color);
-#if 0
-	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
-	                            uber_blktrace_get,
-	                            NULL);
-#endif
+//	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
+//	                            uber_blktrace_get,
+//	                            NULL);
 	/*
 	 * Configure scatter.
 	 */
-#if 0
 	if (want_blktrace) {
 		uber_graph_set_show_ylines(UBER_GRAPH(scatter), FALSE);
 		gdk_color_parse(default_colors[3], &color);
 		uber_scatter_set_fg_color(UBER_SCATTER(scatter), &color);
-		uber_scatter_set_data_func(UBER_SCATTER(scatter),
+//		uber_scatter_set_data_func(UBER_SCATTER(scatter),
 #if 0
 								   //dummy_scatter_func, NULL, NULL);
 #endif
-								   (UberScatterFunc)uber_blktrace_get, NULL, NULL);
+//								   (UberScatterFunc)uber_blktrace_get, NULL, NULL);
 		uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(scatter), "IOPS By Size");
 		uber_graph_set_show_xlabels(UBER_GRAPH(scatter), TRUE);
 		gtk_widget_show(scatter);
@@ -542,7 +540,6 @@ main (gint   argc,   /* IN */
 		uber_graph_set_show_xlabels(UBER_GRAPH(map), FALSE);
 		gtk_widget_show(map);
 	}
-#endif
 	/*
 	 * Add graphs.
 	 */
@@ -588,8 +585,8 @@ main (gint   argc,   /* IN */
 	/*
 	 * Cleanup after blktrace.
 	 */
-	//if (want_blktrace) {
-	//	uber_blktrace_shutdown();
-	//}
+	if (want_blktrace) {
+		uber_blktrace_shutdown();
+	}
 	return EXIT_SUCCESS;
 }
