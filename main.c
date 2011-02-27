@@ -385,7 +385,6 @@ has_freq_scaling (gint cpu)
 	return ret;
 }
 
-#if 0
 static gboolean
 dummy_scatter_func (UberScatter  *scatter,   /* IN */
                     GArray      **array,     /* OUT */
@@ -401,7 +400,6 @@ dummy_scatter_func (UberScatter  *scatter,   /* IN */
 	}
 	return TRUE;
 }
-#endif
 
 gint
 main (gint   argc,   /* IN */
@@ -517,9 +515,8 @@ main (gint   argc,   /* IN */
 	uber_graph_set_show_ylines(UBER_GRAPH(map), FALSE);
 	gdk_color_parse(default_colors[0], &color);
 	uber_heat_map_set_fg_color(UBER_HEAT_MAP(map), &color);
-//	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
-//	                            uber_blktrace_get,
-//	                            NULL);
+	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
+	                            (UberHeatMapFunc)dummy_scatter_func, NULL, NULL);
 	/*
 	 * Configure scatter.
 	 */
@@ -527,11 +524,8 @@ main (gint   argc,   /* IN */
 		uber_graph_set_show_ylines(UBER_GRAPH(scatter), FALSE);
 		gdk_color_parse(default_colors[3], &color);
 		uber_scatter_set_fg_color(UBER_SCATTER(scatter), &color);
-//		uber_scatter_set_data_func(UBER_SCATTER(scatter),
-#if 0
-								   //dummy_scatter_func, NULL, NULL);
-#endif
-//								   (UberScatterFunc)uber_blktrace_get, NULL, NULL);
+		uber_scatter_set_data_func(UBER_SCATTER(scatter),
+								   (UberScatterFunc)uber_blktrace_get, NULL, NULL);
 		uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(scatter), "IOPS By Size");
 		uber_graph_set_show_xlabels(UBER_GRAPH(scatter), TRUE);
 		gtk_widget_show(scatter);
