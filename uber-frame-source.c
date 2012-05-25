@@ -142,11 +142,19 @@ uber_frame_source_prepare (GSource *source,
                               gint    *delay)
 {
   UberFrameSource *frame_source = (UberFrameSource *) source;
-  GTimeVal current_time;
+  gint64 current_time;
 
-  g_source_get_current_time (source, &current_time);
+#if GLIB_CHECK_VERSION (2, 27, 3)
+  current_time = g_source_get_time (source) / 1000;
+#else
+  {
+    GTimeVal source_time;
+    g_source_get_current_time (source, &source_time);
+    current_time = source_time.tv_sec * 1000 + source_time.tv_usec / 1000;
+  }
+#endif
 
-  return _uber_timeout_interval_prepare (&current_time,
+  return _uber_timeout_interval_prepare (current_time,
                                             &frame_source->timeout,
                                             delay);
 }
