@@ -911,11 +911,8 @@ uber_graph_screen_changed (GtkWidget *widget,     /* IN */
 static void
 uber_graph_show (GtkWidget *widget) /* IN */
 {
-	UberGraphPrivate *priv;
-
 	g_return_if_fail(UBER_IS_GRAPH(widget));
 
-	priv = UBER_GRAPH(widget)->priv;
 	WIDGET_CLASS->show(widget);
 	/*
 	 * Only run the FPS timeout when we are visible.
@@ -1850,7 +1847,6 @@ uber_graph_add_label (UberGraph *graph, /* IN */
 static void
 uber_graph_take_screenshot (UberGraph *graph) /* IN */
 {
-	UberGraphPrivate *priv;
 	GtkWidget *widget;
 	GtkWidget *dialog;
 	GdkPixmap *snapshot;
@@ -1862,7 +1858,6 @@ uber_graph_take_screenshot (UberGraph *graph) /* IN */
 
 	g_return_if_fail(UBER_IS_GRAPH(graph));
 
-	priv = graph->priv;
 	widget = GTK_WIDGET(graph);
 	gtk_widget_get_allocation(widget, &alloc);
 	/*
@@ -1953,11 +1948,7 @@ static gboolean
 uber_graph_button_press_event (GtkWidget      *widget, /* IN */
                                GdkEventButton *button) /* IN */
 {
-	UberGraphPrivate *priv;
-
 	g_return_val_if_fail(UBER_IS_GRAPH(widget), FALSE);
-
-	priv = UBER_GRAPH(widget)->priv;
 
 	switch (button->button) {
 	case 2: /* Middle Click */

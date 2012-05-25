@@ -820,14 +820,12 @@ uber_line_graph_set_line_width (UberLineGraph *graph, /* IN */
                                 gint           line,  /* IN */
                                 gdouble        width) /* IN */
 {
-	UberLineGraphPrivate *priv;
 	LineInfo *info;
 
 	g_return_if_fail(UBER_IS_LINE_GRAPH(graph));
 	g_return_if_fail(line > 0);
 	g_return_if_fail(line <= graph->priv->lines->len);
 
-	priv = graph->priv;
 	info = &g_array_index(graph->priv->lines, LineInfo, line - 1);
 	info->width = width;
 	uber_graph_redraw(UBER_GRAPH(graph));

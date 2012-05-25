@@ -50,10 +50,10 @@ OBJECTS =								\
 	uber-scale.o							\
 	uber-label.o							\
 	uber-range.o							\
-	uber-blktrace.o							\
 	uber-frame-source.o						\
 	uber-timeout-interval.o						\
 	main.o								\
+	blktrace.o							\
 	g-ring.o							\
 	$(NULL)
 
@@ -72,7 +72,7 @@ main.o: main.c Makefile
 	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) $*.c $(shell pkg-config --cflags gtk+-2.0 gthread-2.0)
 
 uber-graph: $(OBJECTS) Makefile
-	$(CC) -g -o $@ $(shell pkg-config --libs gtk+-2.0 gthread-2.0) $(OBJECTS)
+	$(CC) -g -o $@  $(OBJECTS) $(shell pkg-config --libs gtk+-2.0 gthread-2.0)
 
 clean:
 	rm -f uber-graph $(OBJECTS)

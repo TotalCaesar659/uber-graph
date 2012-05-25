@@ -28,8 +28,7 @@
 #include <gdk/gdkkeysyms.h>
 
 #include "uber.h"
-#include "uber-blktrace.h"
-#include "uber-window.h"
+#include "blktrace.h"
 
 typedef struct
 {

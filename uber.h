@@ -25,5 +25,6 @@
 #include "uber-range.h"
 #include "uber-scatter.h"
 #include "uber-scale.h"
+#include "uber-window.h"
 
 #endif /* __UBER_H__ */
