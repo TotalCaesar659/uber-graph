@@ -78,71 +78,72 @@ gdk_event_hook (GdkEvent *event, /* IN */
 	gtk_main_do_event(event);
 }
 
-static gboolean
+static gdouble
 get_xevent_info (UberLineGraph *graph,     /* IN */
                  guint          line,      /* IN */
-                 gdouble       *value,     /* OUT */
                  gpointer       user_data) /* IN */
 {
+	gdouble value = UBER_LINE_GRAPH_NO_VALUE;
+
 	switch (line) {
 	case 1:
-		*value = ui_info.gdk_event_count;
+		value = ui_info.gdk_event_count;
 		ui_info.gdk_event_count = 0;
 		break;
 	case 2:
-		*value = ui_info.x_event_count;
+		value = ui_info.x_event_count;
 		ui_info.x_event_count = 0;
 		break;
 	default:
 		g_assert_not_reached();
 	}
-	return TRUE;
+	return value;
 }
 
-static gboolean
+static gdouble
 get_cpu_info (UberLineGraph *graph,     /* IN */
               guint          line,      /* IN */
-              gdouble       *value,     /* OUT */
               gpointer       user_data) /* IN */
 {
 	gchar *text;
 	gint i;
+	gdouble value = UBER_LINE_GRAPH_NO_VALUE;
 
 	g_assert_cmpint(line, >, 0);
 	g_assert_cmpint(line, <=, cpu_info.len * 2);
 
 	if ((line % 2) == 0) {
-		*value = cpu_info.freq[((line - 1) / 2)];
+		value = cpu_info.freq[((line - 1) / 2)];
 	} else {
 		i = (line - 1) / 2;
-		*value = cpu_info.total[i];
+		value = cpu_info.total[i];
 		/*
 		 * Update label text.
 		 */
-		text = g_strdup_printf("CPU%d  %0.1f %%", i + 1, *value);
+		text = g_strdup_printf("CPU%d  %0.1f %%", i + 1, value);
 		uber_label_set_text(UBER_LABEL(cpu_info.labels[i]), text);
 		g_free(text);
 	}
-	return TRUE;
+	return value;
 }
 
-static gboolean
+static gdouble
 get_net_info (UberLineGraph *graph,     /* IN */
               guint          line,      /* IN */
-              gdouble       *value,     /* IN */
               gpointer       user_data) /* IN */
 {
+	gdouble value = UBER_LINE_GRAPH_NO_VALUE;
 	switch (line) {
 	case 1:
-		*value = net_info.total_in;
+		value = net_info.total_in;
 		break;
 	case 2:
-		*value = net_info.total_out;
+		value = net_info.total_out;
 		break;
 	default:
 		g_assert_not_reached();
 	}
-	return TRUE;
+	return value;
 }
 
 int

@@ -81,7 +81,7 @@ enum
  * uber_line_graph_init_ring:
  * @ring: A #GRing.
  *
- * Initialize the #GRing to default values (-INFINITY).
+ * Initialize the #GRing to default values (UBER_LINE_GRAPH_NO_VALUE).
  *
  * Returns: None.
  * Side effects: None.
@@ -89,7 +89,7 @@ enum
 static inline void
 uber_line_graph_init_ring (GRing *ring) /* IN */
 {
-	gdouble val = -INFINITY;
+	gdouble val = UBER_LINE_GRAPH_NO_VALUE;
 	gint i;
 
 	g_return_if_fail(ring != NULL);
@@ -338,13 +338,8 @@ uber_line_graph_get_next_data (UberGraph *graph) /* IN */
 	 */
 	if (priv->func) {
 		for (i = 0; i < priv->lines->len; i++) {
-			val = 0.;
 			line = &g_array_index(priv->lines, LineInfo, i);
-			if (!(ret = priv->func(UBER_LINE_GRAPH(graph),
-			                       i + 1, &val,
-			                       priv->func_data))) {
-				val = -INFINITY;
-			}
+			val = priv->func(UBER_LINE_GRAPH(graph), i + 1, priv->func_data);
 			g_ring_append_val(line->raw_data, val);
 			if (priv->autoscale) {
 				if (val < priv->range.begin) {
@@ -489,10 +484,10 @@ uber_line_graph_render_line (UberLineGraph *graph, /* IN */
 		 */
 		val = g_ring_get_index(line->raw_data, gdouble, i);
 		/*
-		 * Once we get to -INFINITY, we must be at the end of the data
+		 * Once we get to UBER_LINE_GRAPH_NO_VALUE, we must be at the end of the data
 		 * sequence.  This may not always be true in the future.
 		 */
-		if (val == -INFINITY) {
+		if (val == UBER_LINE_GRAPH_NO_VALUE) {
 			break;
 		}
 		/*

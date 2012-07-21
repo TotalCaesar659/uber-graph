@@ -19,6 +19,8 @@
 #ifndef __UBER_LINE_GRAPH_H__
 #define __UBER_LINE_GRAPH_H__
 
+#include <math.h>
+
 #include "uber-graph.h"
 #include "uber-range.h"
 #include "uber-label.h"
@@ -33,6 +35,8 @@ G_BEGIN_DECLS
 #define UBER_IS_LINE_GRAPH_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  UBER_TYPE_LINE_GRAPH))
 #define UBER_LINE_GRAPH_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  UBER_TYPE_LINE_GRAPH, UberLineGraphClass))
 
+#define UBER_LINE_GRAPH_NO_VALUE (NAN)
+
 typedef struct _UberLineGraph        UberLineGraph;
 typedef struct _UberLineGraphClass   UberLineGraphClass;
 typedef struct _UberLineGraphPrivate UberLineGraphPrivate;
@@ -40,17 +44,15 @@ typedef struct _UberLineGraphPrivate UberLineGraphPrivate;
 /**
  * UberLineGraphFunc:
  * @graph: A #UberLineGraph.
- * @value: A location for the next #gdouble value.
  * @user_data: User data supplied to uber_line_graph_set_data_func().
  *
  * Callback prototype for retrieving the next data point in the graph.
  *
- * Returns: %TRUE if successful; otherwise %FALSE.
+ * Returns: a value if successful, otherwise %UBER_LINE_GRAPH_NO_VALUE
  * Side effects: Implementation dependent.
  */
-typedef gboolean (*UberLineGraphFunc) (UberLineGraph *graph,
+typedef gdouble (*UberLineGraphFunc)  (UberLineGraph *graph,
                                        guint          line,
-                                       gdouble       *value,
                                        gpointer       user_data);
 
 struct _UberLineGraph
