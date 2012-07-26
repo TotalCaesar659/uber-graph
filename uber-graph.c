@@ -1816,6 +1816,7 @@ uber_graph_add_label (UberGraph *graph, /* IN */
 static void
 uber_graph_take_screenshot (UberGraph *graph) /* IN */
 {
+#if 0
 	GtkWidget *widget;
 	GtkWidget *dialog;
 	GdkPixmap *snapshot;
@@ -1873,6 +1874,7 @@ uber_graph_take_screenshot (UberGraph *graph) /* IN */
 	}
 	gtk_widget_destroy(dialog);
 	g_object_unref(snapshot);
+#endif
 }
 
 /**

@@ -165,7 +165,7 @@ uber_window_graph_button_press_event (GtkWidget      *widget, /* IN */
 	switch (button->button) {
 	case 1: /* Left click */
 		labels = uber_graph_get_labels(UBER_GRAPH(widget));
-		if (GTK_WIDGET_VISIBLE(labels)) {
+		if (gtk_widget_get_visible(labels)) {
 			uber_window_hide_labels(window, UBER_GRAPH(widget));
 		} else {
 			uber_window_show_labels(window, UBER_GRAPH(widget));

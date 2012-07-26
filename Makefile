@@ -35,6 +35,8 @@ DEBUG_INCLUDES =							\
 INCLUDES =								\
 	-I../								\
 	-DGTK_DISABLE_SINGLE_INCLUDES					\
+	-DGDK_DISABLE_DEPRECATED					\
+	-DGTK_DISABLE_DEPRECATED					\
 	$(NULL)
 
 OBJECTS =								\
