@@ -842,6 +842,7 @@ uber_graph_realize (GtkWidget *widget) /* IN */
 	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
+	UNSET_SURFACE(priv->fg_surface);
 	uber_graph_init_bg(graph);
 	uber_graph_init_texture(graph);
 	/*
@@ -889,6 +890,7 @@ uber_graph_unrealize (GtkWidget *widget) /* IN */
 	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
+	UNSET_SURFACE(priv->fg_surface);
 }
 
 /**
@@ -1811,6 +1813,7 @@ uber_graph_size_allocate (GtkWidget     *widget, /* IN */
 	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
+	UNSET_SURFACE(priv->fg_surface);
 	uber_graph_init_bg(graph);
 	uber_graph_init_texture(graph);
 	/*
@@ -2034,6 +2037,7 @@ uber_graph_dispose (GObject *object) /* IN */
 	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
+	UNSET_SURFACE(priv->fg_surface);
 	/*
 	 * Call base class.
 	 */
