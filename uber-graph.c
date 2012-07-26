@@ -424,7 +424,7 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 	/*
 	 * Clear foreground contents.
 	 */
-	cr = gdk_cairo_create(priv->fg_pixmap);
+	cr = cairo_create(priv->fg_surface);
 	CLEAR_CAIRO(cr, alloc);
 	cairo_destroy(cr);
 }
@@ -485,7 +485,7 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 	/*
 	 * Clear background contents.
 	 */
-	cr = gdk_cairo_create(priv->bg_pixmap);
+	cr = cairo_create(priv->bg_surface);
 	CLEAR_CAIRO(cr, alloc);
 	cairo_destroy(cr);
 }
@@ -1011,7 +1011,7 @@ uber_graph_render_fg (UberGraph *graph) /* IN */
 	priv = graph->priv;
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
 	uber_graph_get_pixmap_rect(graph, &rect);
-	cr = gdk_cairo_create(priv->fg_pixmap);
+	cr = cairo_create(priv->fg_surface);
 	/*
 	 * Render to texture if needed.
 	 */
@@ -1064,7 +1064,7 @@ uber_graph_render_fg (UberGraph *graph) /* IN */
 			 * Render new content clipped.
 			 */
 			cairo_save(cr);
-			gdk_cairo_reset_clip(cr, priv->fg_pixmap);
+			cairo_reset_clip(cr);
 			gdk_cairo_rectangle(cr, &rect);
 			cairo_clip(cr);
 			/*
@@ -1544,7 +1544,7 @@ uber_graph_render_bg (UberGraph *graph) /* IN */
 	priv = graph->priv;
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
 	style = gtk_widget_get_style(GTK_WIDGET(graph));
-	cr = gdk_cairo_create(priv->bg_pixmap);
+	cr = cairo_create(priv->bg_surface);
 	/*
 	 * Ensure valid resources.
 	 */
@@ -1702,7 +1702,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 	 * Paint the background to the exposure area.
 	 */
 	cairo_save(cr);
-	gdk_cairo_set_source_pixmap(cr, priv->bg_pixmap, 0, 0);
+	cairo_set_source_surface(cr, priv->bg_surface, 0, 0);
 	cairo_rectangle(cr, 0, 0, alloc.width, alloc.height);
 	cairo_fill(cr);
 	cairo_restore(cr);
@@ -1723,14 +1723,14 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 		 * at its given offset.
 		 */
 		x = ((priv->x_slots - priv->dps_slot) * priv->dps_each) - offset;
-		gdk_cairo_set_source_pixmap(cr, priv->fg_pixmap, (gint)x, 0);
+		cairo_set_source_surface(cr, priv->fg_surface, (gint)x, 0);
 		gdk_cairo_rectangle(cr, &priv->content_rect);
 		cairo_fill(cr);
 		/*
 		 * Render the second part of the ring pixmap buffer.
 		 */
 		x = (priv->dps_each * -priv->dps_slot) - offset;
-		gdk_cairo_set_source_pixmap(cr, priv->fg_pixmap, (gint)x, 0);
+		cairo_set_source_surface(cr, priv->fg_surface, (gint)x, 0);
 		gdk_cairo_rectangle(cr, &priv->content_rect);
 		cairo_fill(cr);
 		/*
