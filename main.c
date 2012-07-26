@@ -571,7 +571,7 @@ main (gint   argc,   /* IN */
 	 * Setup accelerators.
 	 */
 	ag = gtk_accel_group_new();
-	gtk_accel_group_connect(ag, GDK_w, GDK_CONTROL_MASK, GTK_ACCEL_MASK,
+	gtk_accel_group_connect(ag, GDK_KEY_w, GDK_CONTROL_MASK, GTK_ACCEL_MASK,
 	                        g_cclosure_new(gtk_main_quit, NULL, NULL));
 	gtk_window_add_accel_group(GTK_WINDOW(window), ag);
 	/*

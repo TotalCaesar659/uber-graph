@@ -62,13 +62,13 @@ ifeq ($(DISABLE_DEBUG),1)
 endif
 
 main.o: main.c Makefile
-	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) main.c $(shell pkg-config --cflags gtk+-2.0 gthread-2.0)
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) main.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
 %.o: %.c %.h Makefile
-	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) $*.c $(shell pkg-config --cflags gtk+-2.0 gthread-2.0)
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) $*.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
 uber-graph: $(OBJECTS) Makefile
-	$(CC) -g -o $@  $(OBJECTS) $(shell pkg-config --libs gtk+-2.0 gthread-2.0)
+	$(CC) -o $@ -g $(OBJECTS) $(shell pkg-config --libs gtk+-3.0 gthread-2.0)
 
 clean:
 	rm -f uber-graph $(OBJECTS)

@@ -369,7 +369,6 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 {
 	UberGraphPrivate *priv;
 	GtkAllocation alloc;
-	GdkDrawable *drawable;
 	GdkWindow *window;
 	cairo_t *cr;
 	gint width;
@@ -382,7 +381,7 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 	/*
 	 * Get drawable to base surface upon.
 	 */
-	if (!(drawable = gtk_widget_get_window(GTK_WIDGET(graph)))) {
+	if (!window) {
 		g_critical("%s() called before GdkWindow is allocated.", G_STRFUNC);
 		return;
 	}
@@ -412,7 +411,6 @@ static void
 uber_graph_init_bg (UberGraph *graph) /* IN */
 {
 	UberGraphPrivate *priv;
-	GdkDrawable *drawable;
 	GtkAllocation alloc;
 	GdkWindow *window;
 	cairo_t *cr;
@@ -425,7 +423,7 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 	/*
 	 * Get drawable for surface.
 	 */
-	if (!(drawable = gtk_widget_get_window(GTK_WIDGET(graph)))) {
+	if (!window) {
 		g_critical("%s() called before GdkWindow is allocated.", G_STRFUNC);
 		return;
 	}
@@ -457,7 +455,7 @@ uber_graph_calculate_rects (UberGraph *graph) /* IN */
 	GtkAllocation alloc;
 	PangoLayout *layout;
 	PangoFontDescription *font_desc;
-	GdkDrawable *drawable;
+	GdkWindow *window;
 	gint pango_width;
 	gint pango_height;
 	cairo_t *cr;
@@ -466,16 +464,17 @@ uber_graph_calculate_rects (UberGraph *graph) /* IN */
 
 	priv = graph->priv;
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
+	window = gtk_widget_get_window(GTK_WIDGET(graph));
 	/*
 	 * We can't calculate rectangles before we have a GdkWindow.
 	 */
-	if (!(drawable = gtk_widget_get_window(GTK_WIDGET(graph)))) {
+	if (!window) {
 		return;
 	}
 	/*
 	 * Determine the pixels required for labels.
 	 */
-	cr = gdk_cairo_create(drawable);
+	cr = gdk_cairo_create(window);
 	layout = pango_cairo_create_layout(cr);
 	font_desc = pango_font_description_new();
 	pango_font_description_set_family_static(font_desc, "Monospace");
@@ -855,17 +854,18 @@ uber_graph_screen_changed (GtkWidget *widget,     /* IN */
 {
 	UberGraphPrivate *priv;
 	GdkScreen *screen;
+	GdkVisual *visual;
 
 	g_return_if_fail(UBER_IS_GRAPH(widget));
+
+	screen = gtk_widget_get_screen (GTK_WIDGET (widget));
+	visual = gdk_screen_get_rgba_visual (screen);
 
 	priv = UBER_GRAPH(widget)->priv;
 	/*
 	 * Check if we have RGBA colormaps available.
 	 */
-	priv->have_rgba = FALSE;
-	if ((screen = gtk_widget_get_screen(widget))) {
-		priv->have_rgba = !!gdk_screen_get_rgba_colormap(screen);
-	}
+	priv->have_rgba = visual != NULL;
 }
 
 /**
@@ -1593,7 +1593,7 @@ uber_graph_get_fps_offset (UberGraph *graph) /* IN */
 }
 
 /**
- * uber_graph_expose_event:
+ * uber_graph_draw:
  * @widget: A #GtkWidget.
  *
  * XXX
@@ -1602,12 +1602,12 @@ uber_graph_get_fps_offset (UberGraph *graph) /* IN */
  * Side effects: None.
  */
 static gboolean
-uber_graph_expose_event (GtkWidget      *widget, /* IN */
-                         GdkEventExpose *expose) /* IN */
+uber_graph_draw 	(GtkWidget      *widget, /* IN */
+                         cairo_t        *cr) /* IN */
 {
 	UberGraphPrivate *priv;
 	GtkAllocation alloc;
-	cairo_t *cr;
+//	cairo_t *cr;
 	gfloat offset;
 	gint x;
 
@@ -1624,6 +1624,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 	/*
 	 * Clear window background.
 	 */
+#if 0
 	gdk_window_clear_area(expose->window,
 	                      expose->area.x,
 	                      expose->area.y,
@@ -1638,6 +1639,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 	 */
 	gdk_cairo_rectangle(cr, &expose->area);
 	cairo_clip(cr);
+#endif
 	/*
 	 * Render background or foreground if needed.
 	 */
@@ -1664,7 +1666,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 		/*
 		 * Clip exposure to the content area.
 		 */
-		gdk_cairo_reset_clip(cr, expose->window);
+		cairo_reset_clip(cr);
 		gdk_cairo_rectangle(cr, &priv->content_rect);
 		cairo_clip(cr);
 		/*
@@ -1695,7 +1697,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 	/*
 	 * Cleanup resources.
 	 */
-	cairo_destroy(cr);
+	//cairo_destroy(cr);
 	return FALSE;
 }
 
@@ -1778,6 +1780,26 @@ uber_graph_size_request (GtkWidget      *widget, /* IN */
 
 	req->width = 150;
 	req->height = 50;
+}
+
+static void
+uber_graph_get_preferred_width (GtkWidget      *widget, /* IN */
+                                gint           *minimal_width,
+                                gint           *natural_width)
+{
+	GtkRequisition requisition;
+	uber_graph_size_request(widget, &requisition);
+	*minimal_width = * natural_width = requisition.width;
+}
+
+static void
+uber_graph_get_preferred_height (GtkWidget      *widget, /* IN */
+                                 gint           *minimal_height,
+                                 gint           *natural_height)
+{
+	GtkRequisition requisition;
+	uber_graph_size_request(widget, &requisition);
+	*minimal_height = * natural_height = requisition.height;
 }
 
 /**
@@ -2064,7 +2086,7 @@ uber_graph_class_init (UberGraphClass *klass) /* IN */
 	g_type_class_add_private(object_class, sizeof(UberGraphPrivate));
 
 	widget_class = GTK_WIDGET_CLASS(klass);
-	widget_class->expose_event = uber_graph_expose_event;
+	widget_class->draw = uber_graph_draw;
 	widget_class->hide = uber_graph_hide;
 	widget_class->realize = uber_graph_realize;
 	widget_class->screen_changed = uber_graph_screen_changed;
@@ -2072,7 +2094,8 @@ uber_graph_class_init (UberGraphClass *klass) /* IN */
 	widget_class->size_allocate = uber_graph_size_allocate;
 	widget_class->style_set = uber_graph_style_set;
 	widget_class->unrealize = uber_graph_unrealize;
-	widget_class->size_request = uber_graph_size_request;
+	widget_class->get_preferred_width = uber_graph_get_preferred_width;
+	widget_class->get_preferred_height = uber_graph_get_preferred_height;
 	widget_class->button_press_event = uber_graph_button_press_event;
 
 	show_fps = !!g_getenv("UBER_SHOW_FPS");
@@ -2132,7 +2155,8 @@ uber_graph_init (UberGraph *graph) /* IN */
 	/*
 	 * TODO: Support labels in a grid.
 	 */
-	priv->labels = gtk_hbox_new(TRUE, 3);
+	priv->labels = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
+	gtk_box_set_homogeneous (GTK_BOX(priv->labels), TRUE);
 	priv->align = gtk_alignment_new(.5, .5, 1., 1.);
 	gtk_container_add(GTK_CONTAINER(priv->align), priv->labels);
 	gtk_widget_show(priv->labels);

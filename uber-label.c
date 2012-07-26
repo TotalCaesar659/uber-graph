@@ -120,24 +120,17 @@ uber_label_set_color (UberLabel      *label, /* IN */
 }
 
 static void
-uber_label_block_expose_event (GtkWidget      *block, /* IN */
-                               GdkEventExpose *event, /* IN */
+uber_label_block_draw         (GtkWidget      *block, /* IN */
+                               cairo_t        *cr, /* IN */
                                UberLabel      *label) /* IN */
 {
 	UberLabelPrivate *priv;
 	GtkAllocation alloc;
-	cairo_t *cr;
 
 	g_return_if_fail(UBER_IS_LABEL(label));
 
 	priv = label->priv;
 	gtk_widget_get_allocation(block, &alloc);
-	cr = gdk_cairo_create(event->window);
-	/*
-	 * Clip drawing region.
-	 */
-	gdk_cairo_rectangle(cr, &event->area);
-	cairo_clip(cr);
 	/*
 	 * Draw background.
 	 */
@@ -367,7 +360,7 @@ uber_label_init (UberLabel *label) /* IN */
 	                                          UBER_TYPE_LABEL,
 	                                          UberLabelPrivate);
 	priv = label->priv;
-	priv->hbox = gtk_hbox_new(FALSE, 6);
+	priv->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	priv->block = gtk_drawing_area_new();
 	priv->label = gtk_label_new(NULL);
 	gdk_color_parse("#cc0000", &priv->color);
@@ -381,8 +374,8 @@ uber_label_init (UberLabel *label) /* IN */
 	                      GDK_LEAVE_NOTIFY_MASK |
 	                      GDK_BUTTON_PRESS_MASK);
 	g_signal_connect(priv->block,
-	                 "expose-event",
-	                 G_CALLBACK(uber_label_block_expose_event),
+	                 "draw",
+	                 G_CALLBACK(uber_label_block_draw),
 	                 label);
 	g_signal_connect(priv->block,
 	                 "enter-notify-event",

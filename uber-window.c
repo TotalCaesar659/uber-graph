@@ -210,8 +210,8 @@ uber_window_add_graph (UberWindow  *window, /* IN */
 	/*
 	 * Create container for graph.
 	 */
-	vbox = gtk_vbox_new(FALSE, 0);
-	hbox = gtk_hbox_new(FALSE, 3);
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	label = gtk_label_new(NULL);
 	labels = uber_graph_get_labels(graph);
 	gtk_label_set_markup(GTK_LABEL(label), formatted);
