@@ -32,13 +32,6 @@
 #define WIDGET_CLASS (GTK_WIDGET_CLASS(uber_graph_parent_class))
 #define RECT_RIGHT(r)  ((r).x + (r).width)
 #define RECT_BOTTOM(r) ((r).y + (r).height)
-#define UNSET_PIXMAP(p)        \
-    G_STMT_START {             \
-        if (p) {               \
-            g_object_unref(p); \
-            p = NULL;          \
-        }                      \
-    } G_STMT_END
 #define UNSET_SURFACE(p)       \
     G_STMT_START {             \
         if (p) {               \
@@ -70,7 +63,7 @@
  * a rendering of just a new data sample.  Ideally, UberGraph::render_fast is
  * going to be called.
  *
- * #UberGraph uses a #GdkPixmap as a ring buffer to store the contents of the
+ * #UberGraph uses a #cairo_surface_t as a ring buffer to store the contents of the
  * graph.  Upon destructive changes to the widget such as allocation changed
  * or a new #GtkStyle set, a full rendering of the graph will be required.
  */
@@ -79,9 +72,6 @@ G_DEFINE_ABSTRACT_TYPE(UberGraph, uber_graph, GTK_TYPE_DRAWING_AREA)
 
 struct _UberGraphPrivate
 {
-	GdkPixmap       *fg_pixmap;     /* Server side pixmap for foreground. */
-	GdkPixmap       *bg_pixmap;     /* Server side pixmap for background. */
-
 	cairo_surface_t *fg_surface;
 	cairo_surface_t *bg_surface;
 
@@ -100,7 +90,7 @@ struct _UberGraphPrivate
 	gfloat           fps_each;      /* How far to move in each FPS tick. */
 	guint            fps_handler;   /* Timeout for moving the content. */
 	gfloat           dps;           /* Desired data points per second. */
-	gint             dps_slot;      /* Which slot in the pixmap buffer. */
+	gint             dps_slot;      /* Which slot in the surface buffer. */
 	gfloat           dps_each;      /* How many pixels between data points. */
 	GTimeVal         dps_tv;        /* Timeval of last data point. */
 	guint            dps_handler;   /* Timeout for getting new data. */
@@ -380,11 +370,8 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 	UberGraphPrivate *priv;
 	GtkAllocation alloc;
 	GdkDrawable *drawable;
-	GdkColormap *colormap;
-	GdkVisual *visual;
 	GdkWindow *window;
 	cairo_t *cr;
-	gint depth = -1;
 	gint width;
 
 	g_return_if_fail(UBER_IS_GRAPH(graph));
@@ -393,34 +380,17 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
 	window = gtk_widget_get_window(GTK_WIDGET(graph));
 	/*
-	 * Get drawable to base pixmaps upon.
+	 * Get drawable to base surface upon.
 	 */
 	if (!(drawable = gtk_widget_get_window(GTK_WIDGET(graph)))) {
 		g_critical("%s() called before GdkWindow is allocated.", G_STRFUNC);
 		return;
 	}
 	/*
-	 * Check if we can do 32-bit RGBA colormaps.
-	 */
-	if (priv->have_rgba) {
-		drawable = NULL;
-		depth = 32;
-	}
-	/*
-	 * Initialize foreground and background pixmaps.
+	 * Initialize foreground and background surface.
 	 */
 	width = MAX(priv->nonvis_rect.x + priv->nonvis_rect.width, alloc.width);
-	priv->fg_pixmap = gdk_pixmap_new(drawable, width, alloc.height, depth);
 	priv->fg_surface = gdk_window_create_similar_surface(window, CAIRO_CONTENT_COLOR_ALPHA, width, alloc.height);
-	/*
-	 * Create a 32-bit colormap if needed.
-	 */
-	if (priv->have_rgba) {
-		visual = gdk_visual_get_best_with_depth(depth);
-		colormap = gdk_colormap_new(visual, FALSE);
-		gdk_drawable_set_colormap(GDK_DRAWABLE(priv->fg_pixmap), colormap);
-		g_object_unref(colormap);
-	}
 	/*
 	 * Clear foreground contents.
 	 */
@@ -444,11 +414,8 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 	UberGraphPrivate *priv;
 	GdkDrawable *drawable;
 	GtkAllocation alloc;
-	GdkVisual *visual;
-	GdkColormap *colormap;
 	GdkWindow *window;
 	cairo_t *cr;
-	gint depth = 32;
 
 	g_return_if_fail(UBER_IS_GRAPH(graph));
 
@@ -456,32 +423,16 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
 	window = gtk_widget_get_window(GTK_WIDGET(graph));
 	/*
-	 * Get drawable for pixmap.
+	 * Get drawable for surface.
 	 */
 	if (!(drawable = gtk_widget_get_window(GTK_WIDGET(graph)))) {
 		g_critical("%s() called before GdkWindow is allocated.", G_STRFUNC);
 		return;
 	}
 	/*
-	 * Fallback if we don't have 32-bit RGBA rendering.
+	 * Create the server-side surface.
 	 */
-	if (!priv->have_rgba) {
-		depth = -1;
-	}
-	/*
-	 * Create the server-side pixmap.
-	 */
-	priv->bg_pixmap = gdk_pixmap_new(drawable, alloc.width, alloc.height, depth);
 	priv->bg_surface = gdk_window_create_similar_surface(window, CAIRO_CONTENT_COLOR_ALPHA, alloc.width, alloc.height);
-	/*
-	 * Setup 32-bit colormap if needed.
-	 */
-	if (priv->have_rgba) {
-		visual = gdk_visual_get_best_with_depth(depth);
-		colormap = gdk_colormap_new(visual, FALSE);
-		gdk_drawable_set_colormap(GDK_DRAWABLE(priv->bg_pixmap), colormap);
-		g_object_unref(colormap);
-	}
 	/*
 	 * Clear background contents.
 	 */
@@ -839,9 +790,7 @@ uber_graph_realize (GtkWidget *widget) /* IN */
 	/*
 	 * Re-initialize textures for updated sizes.
 	 */
-	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
-	UNSET_PIXMAP(priv->fg_pixmap);
 	UNSET_SURFACE(priv->fg_surface);
 	uber_graph_init_bg(graph);
 	uber_graph_init_texture(graph);
@@ -887,9 +836,7 @@ uber_graph_unrealize (GtkWidget *widget) /* IN */
 	/*
 	 * Destroy textures.
 	 */
-	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
-	UNSET_PIXMAP(priv->fg_pixmap);
 	UNSET_SURFACE(priv->fg_surface);
 }
 
@@ -1551,7 +1498,7 @@ uber_graph_render_bg (UberGraph *graph) /* IN */
 	 * Ensure valid resources.
 	 */
 	g_assert(style);
-	g_assert(priv->bg_pixmap);
+	g_assert(priv->bg_surface);
 	/*
 	 * Clear entire background.  Hopefully this looks okay for RGBA themes
 	 * that are translucent.
@@ -1672,8 +1619,8 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 	/*
 	 * Ensure that the texture is initialized.
 	 */
-	g_assert(priv->fg_pixmap);
-	g_assert(priv->bg_pixmap);
+	g_assert(priv->fg_surface);
+	g_assert(priv->bg_surface);
 	/*
 	 * Clear window background.
 	 */
@@ -1721,7 +1668,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 		gdk_cairo_rectangle(cr, &priv->content_rect);
 		cairo_clip(cr);
 		/*
-		 * Data in the fg pixmap is a ring bufer. Render the first portion
+		 * Data in the fg surface is a ring bufer. Render the first portion
 		 * at its given offset.
 		 */
 		x = ((priv->x_slots - priv->dps_slot) * priv->dps_each) - offset;
@@ -1729,7 +1676,7 @@ uber_graph_expose_event (GtkWidget      *widget, /* IN */
 		gdk_cairo_rectangle(cr, &priv->content_rect);
 		cairo_fill(cr);
 		/*
-		 * Render the second part of the ring pixmap buffer.
+		 * Render the second part of the ring surface buffer.
 		 */
 		x = (priv->dps_each * -priv->dps_slot) - offset;
 		cairo_set_source_surface(cr, priv->fg_surface, (gint)x, 0);
@@ -1808,11 +1755,9 @@ uber_graph_size_allocate (GtkWidget     *widget, /* IN */
 	 */
 	uber_graph_calculate_rects(graph);
 	/*
-	 * Recreate server side pixmaps.
+	 * Recreate server side surface.
 	 */
-	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
-	UNSET_PIXMAP(priv->fg_pixmap);
 	UNSET_SURFACE(priv->fg_surface);
 	uber_graph_init_bg(graph);
 	uber_graph_init_texture(graph);
@@ -2034,9 +1979,7 @@ uber_graph_dispose (GObject *object) /* IN */
 	/*
 	 * Destroy textures.
 	 */
-	UNSET_PIXMAP(priv->bg_pixmap);
 	UNSET_SURFACE(priv->bg_surface);
-	UNSET_PIXMAP(priv->fg_pixmap);
 	UNSET_SURFACE(priv->fg_surface);
 	/*
 	 * Call base class.
