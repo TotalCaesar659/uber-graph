@@ -34,13 +34,12 @@ DEBUG_INCLUDES =							\
 
 INCLUDES =								\
 	-I../								\
+	-DGTK_DISABLE_SINGLE_INCLUDES					\
 	$(NULL)
 
 OBJECTS =								\
 	uber-graph.o							\
 	uber-line-graph.o						\
-	uber-heat-map.o							\
-	uber-scatter.o							\
 	uber-window.o							\
 	uber-scale.o							\
 	uber-label.o							\
@@ -51,6 +50,10 @@ OBJECTS =								\
 	blktrace.o							\
 	g-ring.o							\
 	$(NULL)
+
+#	uber-heat-map.o						\
+#	uber-scatter.o							\
+
 
 ifeq ($(DISABLE_DEBUG),1)
 	INCLUDES += $(DEBUG_INCLUDES)

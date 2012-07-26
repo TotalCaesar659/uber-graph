@@ -21,6 +21,7 @@
 #endif
 
 #include <glib/gi18n.h>
+#include <gdk/gdk.h>
 #include <math.h>
 #include <string.h>
 
@@ -35,6 +36,13 @@
     G_STMT_START {             \
         if (p) {               \
             g_object_unref(p); \
+            p = NULL;          \
+        }                      \
+    } G_STMT_END
+#define UNSET_SURFACE(p)       \
+    G_STMT_START {             \
+        if (p) {               \
+            cairo_surface_destroy (p); \
             p = NULL;          \
         }                      \
     } G_STMT_END
@@ -73,6 +81,10 @@ struct _UberGraphPrivate
 {
 	GdkPixmap       *fg_pixmap;     /* Server side pixmap for foreground. */
 	GdkPixmap       *bg_pixmap;     /* Server side pixmap for background. */
+
+	cairo_surface_t *fg_surface;
+	cairo_surface_t *bg_surface;
+
 	GdkRectangle     content_rect;  /* Content area rectangle. */
 	GdkRectangle     nonvis_rect;   /* Non-visible drawing area larger than
 	                                 * content rect. Used to draw over larger
@@ -370,6 +382,7 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 	GdkDrawable *drawable;
 	GdkColormap *colormap;
 	GdkVisual *visual;
+	GdkWindow *window;
 	cairo_t *cr;
 	gint depth = -1;
 	gint width;
@@ -378,6 +391,7 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 
 	priv = graph->priv;
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
+	window = gtk_widget_get_window(GTK_WIDGET(graph));
 	/*
 	 * Get drawable to base pixmaps upon.
 	 */
@@ -397,6 +411,7 @@ uber_graph_init_texture (UberGraph *graph) /* IN */
 	 */
 	width = MAX(priv->nonvis_rect.x + priv->nonvis_rect.width, alloc.width);
 	priv->fg_pixmap = gdk_pixmap_new(drawable, width, alloc.height, depth);
+	priv->fg_surface = gdk_window_create_similar_surface(window, CAIRO_CONTENT_COLOR_ALPHA, width, alloc.height);
 	/*
 	 * Create a 32-bit colormap if needed.
 	 */
@@ -431,6 +446,7 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 	GtkAllocation alloc;
 	GdkVisual *visual;
 	GdkColormap *colormap;
+	GdkWindow *window;
 	cairo_t *cr;
 	gint depth = 32;
 
@@ -438,6 +454,7 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 
 	priv = graph->priv;
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
+	window = gtk_widget_get_window(GTK_WIDGET(graph));
 	/*
 	 * Get drawable for pixmap.
 	 */
@@ -455,6 +472,7 @@ uber_graph_init_bg (UberGraph *graph) /* IN */
 	 * Create the server-side pixmap.
 	 */
 	priv->bg_pixmap = gdk_pixmap_new(drawable, alloc.width, alloc.height, depth);
+	priv->bg_surface = gdk_window_create_similar_surface(window, CAIRO_CONTENT_COLOR_ALPHA, alloc.width, alloc.height);
 	/*
 	 * Setup 32-bit colormap if needed.
 	 */
@@ -822,6 +840,7 @@ uber_graph_realize (GtkWidget *widget) /* IN */
 	 * Re-initialize textures for updated sizes.
 	 */
 	UNSET_PIXMAP(priv->bg_pixmap);
+	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
 	uber_graph_init_bg(graph);
 	uber_graph_init_texture(graph);
@@ -868,6 +887,7 @@ uber_graph_unrealize (GtkWidget *widget) /* IN */
 	 * Destroy textures.
 	 */
 	UNSET_PIXMAP(priv->bg_pixmap);
+	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
 }
 
@@ -1025,7 +1045,7 @@ uber_graph_render_fg (UberGraph *graph) /* IN */
 			cairo_fill(cr);
 			cairo_restore(cr);
 
-#if 0
+#if 1
 			/*
 			 * XXX: Draw line helper for debugging.
 			 */
@@ -1789,6 +1809,7 @@ uber_graph_size_allocate (GtkWidget     *widget, /* IN */
 	 * Recreate server side pixmaps.
 	 */
 	UNSET_PIXMAP(priv->bg_pixmap);
+	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
 	uber_graph_init_bg(graph);
 	uber_graph_init_texture(graph);
@@ -2011,6 +2032,7 @@ uber_graph_dispose (GObject *object) /* IN */
 	 * Destroy textures.
 	 */
 	UNSET_PIXMAP(priv->bg_pixmap);
+	UNSET_SURFACE(priv->bg_surface);
 	UNSET_PIXMAP(priv->fg_pixmap);
 	/*
 	 * Call base class.
