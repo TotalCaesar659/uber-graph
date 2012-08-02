@@ -994,7 +994,7 @@ uber_graph_render_fg (UberGraph *graph) /* IN */
 			cairo_fill(cr);
 			cairo_restore(cr);
 
-#if 1
+#if 0
 			/*
 			 * XXX: Draw line helper for debugging.
 			 */
