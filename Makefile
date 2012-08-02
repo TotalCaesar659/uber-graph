@@ -1,4 +1,4 @@
-all: uber-graph
+all: system-monitor
 
 DISABLE_DEBUG := 0
 
@@ -50,7 +50,6 @@ OBJECTS =								\
 	uber-timeout-interval.o						\
 	uber-heat-map.o						\
 	uber-scatter.o							\
-	main.o								\
 	blktrace.o							\
 	sysmon.o							\
 	g-ring.o							\
@@ -62,17 +61,24 @@ ifeq ($(DISABLE_DEBUG),1)
 	INCLUDES += $(DEBUG_INCLUDES)
 endif
 
-main.o: main.c Makefile
-	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) main.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
+system-monitor.o: system-monitor.c Makefile
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) system-monitor.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
+
+uber-demo.o: uber-demo.c Makefile
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) uber-demo.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
 %.o: %.c %.h Makefile
 	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) $*.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
-uber-graph: $(OBJECTS) Makefile
-	$(CC) -o $@ -g $(OBJECTS) $(shell pkg-config --libs gtk+-3.0 gthread-2.0)
+system-monitor: system-monitor.o $(OBJECTS) Makefile
+	$(CC) -o $@ -g system-monitor.o $(OBJECTS) $(shell pkg-config --libs gtk+-3.0 gthread-2.0)
+
+uber-demo: uber-demo.o $(OBJECTS) Makefile
+	$(CC) -o $@ -g uber-demo.o $(OBJECTS) $(shell pkg-config --libs gtk+-3.0 gthread-2.0)
+
 
 clean:
-	rm -f uber-graph $(OBJECTS)
+	rm -f system-monitor $(OBJECTS)
 
-run: uber-graph
-	./uber-graph
+run: system-monitor
+	./system-monitor
