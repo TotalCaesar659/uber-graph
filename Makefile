@@ -48,13 +48,13 @@ OBJECTS =								\
 	uber-range.o							\
 	uber-frame-source.o						\
 	uber-timeout-interval.o						\
+	uber-heat-map.o						\
+	uber-scatter.o							\
 	main.o								\
 	blktrace.o							\
 	g-ring.o							\
 	$(NULL)
 
-#	uber-heat-map.o						\
-#	uber-scatter.o							\
 
 
 ifeq ($(DISABLE_DEBUG),1)

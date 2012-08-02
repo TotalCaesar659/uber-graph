@@ -239,7 +239,6 @@ uber_heat_map_get_next_data (UberGraph *graph) /* IN */
 {
 	UberHeatMapPrivate *priv;
 	GArray *array = NULL;
-	gint i;
 
 	g_return_val_if_fail(UBER_IS_HEAT_MAP(graph), FALSE);
 
@@ -257,9 +256,9 @@ uber_heat_map_get_next_data (UberGraph *graph) /* IN */
 	 * Store data points.
 	 */
 	g_ring_append_val(priv->raw_data, array);
-	for (i = 0; i < array->len; i++) {
-		g_print("==> %f\n", g_array_index(array, gdouble, i));
-	}
+//	for (int i = 0; i < array->len; i++) {
+//		g_print("==> %f\n", g_array_index(array, gdouble, i));
+//	}
 	return TRUE;
 }
 

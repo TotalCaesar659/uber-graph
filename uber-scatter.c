@@ -199,7 +199,7 @@ uber_scatter_render (UberGraph     *graph, /* IN */
 		x = epoch - (i * each) - (each / 2.);
 		for (j = 0; j < ar->len; j++) {
 			y = g_array_index(ar, gdouble, j);
-			g_debug("Raw ==> %f", y);
+//			g_debug("Raw ==> %f", y);
 			uber_scale_linear(&priv->range, &pixel_range, &y, NULL);
 			/*
 			 * Shadow.

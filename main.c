@@ -30,8 +30,6 @@
 #include "uber.h"
 #include "blktrace.h"
 
-#define USE_HEAT 0
-
 typedef struct
 {
 	guint       len;
@@ -387,7 +385,6 @@ has_freq_scaling (gint cpu)
 	return ret;
 }
 
-#if USE_HEAT
 static gboolean
 dummy_scatter_func (UberScatter  *scatter,   /* IN */
                     GArray      **array,     /* OUT */
@@ -403,7 +400,6 @@ dummy_scatter_func (UberScatter  *scatter,   /* IN */
 	}
 	return TRUE;
 }
-#endif
 
 gint
 main (gint   argc,   /* IN */
@@ -417,10 +413,8 @@ main (gint   argc,   /* IN */
 	GtkWidget *cpu;
 	GtkWidget *net;
 	GtkWidget *line;
-#if USE_HEAT
 	GtkWidget *map;
 	GtkWidget *scatter;
-#endif
 	GtkWidget *label;
 	GtkAccelGroup *ag;
 	GdkColor color;
@@ -457,10 +451,8 @@ main (gint   argc,   /* IN */
 	cpu = uber_line_graph_new();
 	net = uber_line_graph_new();
 	line = uber_line_graph_new();
-#if USE_HEAT
 	map = uber_heat_map_new();
 	scatter = uber_scatter_new();
-#endif
 	/*
 	 * Configure CPU graph.
 	 */
@@ -517,7 +509,7 @@ main (gint   argc,   /* IN */
 	uber_label_set_text(UBER_LABEL(label), "Bytes Out");
 	gdk_color_parse("#4e9a06", &color);
 	uber_line_graph_add_line(UBER_LINE_GRAPH(net), &color, UBER_LABEL(label));
-#if USE_HEAT
+
 	/*
 	 * Configure heat map.
 	 */
@@ -526,6 +518,10 @@ main (gint   argc,   /* IN */
 	uber_heat_map_set_fg_color(UBER_HEAT_MAP(map), &color);
 	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
 	                            (UberHeatMapFunc)dummy_scatter_func, NULL, NULL);
+	uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(map), "IO Latency");
+	uber_graph_set_show_xlabels(UBER_GRAPH(map), FALSE);
+	gtk_widget_show(map);
+
 	/*
 	 * Configure scatter.
 	 */
@@ -538,12 +534,7 @@ main (gint   argc,   /* IN */
 		uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(scatter), "IOPS By Size");
 		uber_graph_set_show_xlabels(UBER_GRAPH(scatter), TRUE);
 		gtk_widget_show(scatter);
-
-		uber_window_add_graph(UBER_WINDOW(window), UBER_GRAPH(map), "IO Latency");
-		uber_graph_set_show_xlabels(UBER_GRAPH(map), FALSE);
-		gtk_widget_show(map);
 	}
-#endif
 	/*
 	 * Add graphs.
 	 */
