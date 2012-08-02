@@ -52,6 +52,7 @@ OBJECTS =								\
 	uber-scatter.o							\
 	main.o								\
 	blktrace.o							\
+	sysmon.o							\
 	g-ring.o							\
 	$(NULL)
 
