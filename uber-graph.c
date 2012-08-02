@@ -1838,10 +1838,8 @@ uber_graph_add_label (UberGraph *graph, /* IN */
 static void
 uber_graph_take_screenshot (UberGraph *graph) /* IN */
 {
-#if 0
 	GtkWidget *widget;
 	GtkWidget *dialog;
-	GdkPixmap *snapshot;
 	GtkAllocation alloc;
 	const gchar *filename;
 	cairo_status_t status;
@@ -1852,13 +1850,7 @@ uber_graph_take_screenshot (UberGraph *graph) /* IN */
 
 	widget = GTK_WIDGET(graph);
 	gtk_widget_get_allocation(widget, &alloc);
-	/*
-	 * Take screenshot immediately.
-	 */
-	if (!(snapshot = gtk_widget_get_snapshot(widget, NULL))) {
-		g_critical("Failed to retrieve widget snapshot.");
-		goto cleanup;
-	}
+
 	/*
 	 * Create save dialog and ask user for filename.
 	 */
@@ -1875,9 +1867,12 @@ uber_graph_take_screenshot (UberGraph *graph) /* IN */
 		surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
 		                                     alloc.width, alloc.height);
 		cr = cairo_create(surface);
-		gdk_cairo_set_source_pixmap(cr, snapshot, 0, 0);
 		cairo_rectangle(cr, 0, 0, alloc.width, alloc.height);
-		cairo_paint(cr);
+		cairo_clip(cr);
+
+		/* Paint to the image surface instead of the screen */
+		uber_graph_draw(widget, cr);
+
 		/*
 		 * Save surface to png.
 		 */
@@ -1895,8 +1890,6 @@ uber_graph_take_screenshot (UberGraph *graph) /* IN */
 		cairo_surface_destroy(surface);
 	}
 	gtk_widget_destroy(dialog);
-	g_object_unref(snapshot);
-#endif
 }
 
 /**
