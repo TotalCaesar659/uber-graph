@@ -1,7 +1,6 @@
-all: uber-graph
+all: system-monitor
 
-DISABLE_DEBUG := 1
-DISABLE_TRACE := 1
+DISABLE_DEBUG := 0
 
 WARNINGS =								\
 	-Wall								\
@@ -33,41 +32,53 @@ DEBUG_INCLUDES =							\
 	-DDISABLE_DEBUG							\
 	$(NULL)
 
-TRACE_INCLUDES =							\
-	-DUBER_TRACE							\
-	$(NULL)
-
 INCLUDES =								\
+	-I../								\
+	-DGTK_DISABLE_SINGLE_INCLUDES					\
+	-DGDK_DISABLE_DEPRECATED					\
+	-DGTK_DISABLE_DEPRECATED					\
 	$(NULL)
 
 OBJECTS =								\
 	uber-graph.o							\
-	uber-buffer.o							\
+	uber-line-graph.o						\
+	uber-window.o							\
+	uber-scale.o							\
 	uber-label.o							\
-	uber-heat-map.o							\
+	uber-range.o							\
+	uber-frame-source.o						\
+	uber-timeout-interval.o						\
+	uber-heat-map.o						\
+	uber-scatter.o							\
+	blktrace.o							\
+	sysmon.o							\
 	g-ring.o							\
-	main.o								\
 	$(NULL)
+
+
 
 ifeq ($(DISABLE_DEBUG),1)
 	INCLUDES += $(DEBUG_INCLUDES)
 endif
 
-ifeq ($(DISABLE_TRACE),0)
-	INCLUDES += $(TRACE_INCLUDES)
-endif
+system-monitor.o: system-monitor.c Makefile
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) system-monitor.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
-main.o: main.c Makefile
-	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) main.c $(shell pkg-config --cflags gtk+-2.0 gthread-2.0)
+uber-demo.o: uber-demo.c Makefile
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) uber-demo.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
 %.o: %.c %.h Makefile
-	$(CC) -g -c -o $@ $(WARNINGS) $(INCLUDES) $*.c $(shell pkg-config --cflags gtk+-2.0 gthread-2.0)
+	$(CC) -c -o $@ -g $(WARNINGS) $(INCLUDES) $*.c $(shell pkg-config --cflags gtk+-3.0 gthread-2.0)
 
-uber-graph: $(OBJECTS) Makefile
-	$(CC) -g -o $@ $(shell pkg-config --libs gtk+-2.0 gthread-2.0) $(OBJECTS)
+system-monitor: system-monitor.o $(OBJECTS) Makefile
+	$(CC) -o $@ -g system-monitor.o $(OBJECTS) $(shell pkg-config --libs gtk+-3.0 gthread-2.0)
+
+uber-demo: uber-demo.o $(OBJECTS) Makefile
+	$(CC) -o $@ -g uber-demo.o $(OBJECTS) $(shell pkg-config --libs gtk+-3.0 gthread-2.0)
+
 
 clean:
-	rm -f uber-graph $(OBJECTS)
+	rm -f system-monitor $(OBJECTS)
 
-run: uber-graph
-	./uber-graph
+run: system-monitor
+	./system-monitor

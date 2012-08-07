@@ -35,7 +35,7 @@
 #include <errno.h>
 #include <linux/blktrace_api.h>
 
-#include "uber-blktrace.h"
+#include "blktrace.h"
 
 typedef struct
 {

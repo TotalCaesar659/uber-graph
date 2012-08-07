@@ -1,6 +1,7 @@
-/* uber.h
+/* uber-blktrace.h
  *
- * Copyright (C) 2010 Christian Hergert <chris@dronelabs.com>
+ * Copyright (C) 2010 Andy Isaacson
+ *               2010 Christian Hergert <chris@dronelabs.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,15 +17,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __UBER_H__
-#define __UBER_H__
+#ifndef __BLKTRACE_H__
+#define __BLKTRACE_H__
 
-#include "uber-graph.h"
-#include "uber-line-graph.h"
 #include "uber-heat-map.h"
-#include "uber-range.h"
-#include "uber-scatter.h"
-#include "uber-scale.h"
-#include "uber-window.h"
 
-#endif /* __UBER_H__ */
+G_BEGIN_DECLS
+
+void     uber_blktrace_init     (void);
+void     uber_blktrace_next     (void);
+gboolean uber_blktrace_get      (UberHeatMap  *map,
+                                 GArray      **values,
+                                 gpointer      user_data);
+void     uber_blktrace_shutdown (void);
+
+G_END_DECLS
+
+#endif /* __BLKTRACE_H__ */
