@@ -1,6 +1,6 @@
-ACLOCAL_AMFLAGS = -I build ${ACLOCAL_FLAGS}
+ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-SUBDIRS = .
+SUBDIRS = . doc
 
 DISTCHECK_CONFIGURE_FLAGS =
 MAINTAINERCLEANFILES =
@@ -8,48 +8,47 @@ EXTRA_DIST =
 CLEANFILES =
 noinst_PROGRAMS =
 
-lib_LTLIBRARIES = src/libuber.la
+lib_LTLIBRARIES = libuber-1.0.la
 
-uberdir = $(pkgincludedir)/src
-uber_HEADERS = 				\
-	src/uber.h				\
-	src/uber-graph.h		\
-	src/uber-frame-source.h	\
-	src/uber-heat-map.h		\
-	src/uber-line-graph.h	\
-	src/uber-label.h		\
-	src/uber-range.h		\
-	src/uber-scale.h		\
-	src/uber-scatter.h		\
-	src/uber-timeout-interval.h		\
-	src/uber-window.h		\
-	src/g-ring.h
+uberdir = $(pkgincludedir)/uber
+uber_HEADERS = $(INST_H_FILES)
 
-src_libuber_la_SOURCES = 	\
-	src/uber-graph.c		\
-	src/uber-frame-source.c	\
-	src/uber-heat-map.c		\
-	src/uber-line-graph.c	\
-	src/uber-label.c		\
-	src/uber-range.c		\
-	src/uber-scale.c		\
-	src/uber-scatter.c		\
-	src/uber-timeout-interval.c		\
-	src/uber-window.c		\
-	src/g-ring.c
+INST_H_FILES =				\
+	uber/uber.h			\
+	uber/uber-graph.h		\
+	uber/uber-frame-source.h	\
+	uber/uber-heat-map.h		\
+	uber/uber-line-graph.h		\
+	uber/uber-label.h		\
+	uber/uber-range.h		\
+	uber/uber-scale.h		\
+	uber/uber-scatter.h		\
+	uber/uber-timeout-interval.h
 
-src_libuber_la_CPPFLAGS = 	\
-	-I$(top_srcdir)			\
-	-I$(top_srcdir)/src		\
-	$(AM_CPPFLAGS)
+NOINST_H_FILES =			\
+	uber/uber-window.h		\
+	uber/g-ring.h
 
-src_libuber_la_CFLAGS = 		\
-	$(DEPS_CFLAGS)			\
-	$(AM_CFLAGS)
+libuber_1_0_la_SOURCES = 		\
+	$(INST_H_FILES)			\
+	$(NOINST_H_FILES)		\
+	uber/uber-graph.c		\
+	uber/uber-frame-source.c	\
+	uber/uber-heat-map.c		\
+	uber/uber-line-graph.c		\
+	uber/uber-label.c		\
+	uber/uber-range.c		\
+	uber/uber-scale.c		\
+	uber/uber-scatter.c		\
+	uber/uber-timeout-interval.c	\
+	uber/uber-window.c		\
+	uber/g-ring.c
 
-src_libuber_la_LIBADD = 		\
-	$(DEPS_LIBS)			\
-	$(AM_LIBADD)
+libuber_1_0_la_CFLAGS =
+libuber_1_0_la_CFLAGS += $(GTK_CFLAGS)
+
+libuber_1_0_la_LIBADD =
+libuber_1_0_la_LIBADD += $(GTK_LIBS)
 
 # Introspection
 -include $(INTROSPECTION_MAKEFILE)
@@ -60,19 +59,19 @@ DISTCHECK_CONFIGURE_FLAGS += --enable-introspection
 EXTRA_DIST += introspection.m4
 
 if HAVE_INTROSPECTION
-src/Uber-1.0.gir: src/libuber.la
-src_Uber_1_0_gir_INCLUDES = Gtk-3.0
-src_Uber_1_0_gir_CFLAGS = $(DEPS_CFLAGS) $(src_libuber_la_CPPFLAGS)
-src_Uber_1_0_gir_LIBS = src/libuber.la
-src_Uber_1_0_gir_FILES = $(src_libuber_la_SOURCES) $(uber_HEADERS)
-src_Uber_1_0_gir_NAMESPACE = Uber
-src_Uber_1_0_gir_EXPORT_PACKAGES = libuber
-src_Uber_1_0_gir_SCANNERFLAGS = 	\
+Uber-1.0.gir: libuber-1.0.la
+Uber_1_0_gir_INCLUDES = Gtk-3.0
+Uber_1_0_gir_CFLAGS = $(GTK_CFLAGS) $(libuber_1_0_la_CPPFLAGS)
+Uber_1_0_gir_LIBS = libuber-1.0.la
+Uber_1_0_gir_FILES = $(libuber_1_0_la_SOURCES) $(INST_H_FILES)
+Uber_1_0_gir_NAMESPACE = Uber
+Uber_1_0_gir_EXPORT_PACKAGES = uber-1.0
+Uber_1_0_gir_SCANNERFLAGS = 	\
 	--nsversion=1.0 		\
 	--symbol-prefix=uber 	\
 	--c-include="uber/uber.h"
 
-INTROSPECTION_GIRS += src/Uber-1.0.gir
+INTROSPECTION_GIRS += Uber-1.0.gir
 
 girdir = $(datadir)/gir-1.0
 gir_DATA = $(INTROSPECTION_GIRS)
@@ -93,16 +92,16 @@ demos_c_simple_SOURCES = 	\
 
 demos_c_simple_CPPFLAGS = 	\
 	-I$(top_srcdir)/ 	\
-	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/uber	\
 	$(AM_CPPFLAGS)
 
 demos_c_simple_CFLAGS = 	\
-	$(DEPS_CFLAGS) 		\
+	$(GTK_CFLAGS) 		\
 	$(AM_CFLAGS)
 
 demos_c_simple_LDADD = 	\
-	$(top_builddir)/src/libuber.la \
-	$(DEPS_LIBS) 		\
+	$(top_builddir)/libuber-1.0.la \
+	$(GTK_LIBS) 		\
 	$(AM_LDADD)
 
 

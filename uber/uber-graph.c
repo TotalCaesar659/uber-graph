@@ -1577,7 +1577,7 @@ static gfloat
 uber_graph_get_fps_offset (UberGraph *graph) /* IN */
 {
 	UberGraphPrivate *priv;
-	GTimeVal rel;
+	GTimeVal rel = { 0 };
 	GTimeVal tv;
 	gfloat f;
 

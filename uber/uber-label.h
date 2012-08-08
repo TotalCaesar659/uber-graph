@@ -53,7 +53,7 @@ GtkWidget* uber_label_new        (void);
 void       uber_label_set_color  (UberLabel      *label,
                                   const GdkColor *color);
 void       uber_label_set_text   (UberLabel      *label,
-                                  const gchar    *markup);
+                                  const gchar    *text);
 
 G_END_DECLS
 
