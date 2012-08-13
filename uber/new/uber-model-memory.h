@@ -54,6 +54,10 @@ UberModel *uber_model_memory_new       (guint n_columns,
                                         ...);
 void       uber_model_memory_append    (UberModelMemory *memory,
                                         UberModelIter   *iter);
+void       uber_model_memory_set       (UberModelMemory *memory,
+                                        UberModelIter   *iter,
+                                        gint             first_column,
+                                        ...);
 void       uber_model_memory_set_value (UberModelMemory *memory,
                                         UberModelIter   *iter,
                                         guint            column,

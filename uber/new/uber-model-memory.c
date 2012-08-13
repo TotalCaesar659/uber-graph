@@ -17,6 +17,7 @@
  */
 
 #include <glib/gi18n.h>
+#include <gobject/gvaluecollector.h>
 
 #include "gring.h"
 #include "uber-model-memory.h"
@@ -180,6 +181,54 @@ uber_model_memory_set_value (UberModelMemory *memory,
    default:
       g_assert_not_reached();
    }
+}
+
+static void
+uber_model_memory_set_valist (UberModelMemory *memory,
+                              UberModelIter   *iter,
+                              gint             first_column,
+                              va_list          args)
+{
+   Column *c;
+   GValue value = { 0 };
+   gchar *errstr = NULL;
+   gint column = first_column;
+
+   g_assert(UBER_IS_MODEL_MEMORY(memory));
+   g_assert(iter);
+   g_assert(first_column >= 0);
+
+   do {
+      if (!(c = uber_model_memory_get_column(memory, column))) {
+         g_warning("No such column: %d", column);
+         return;
+      }
+      G_VALUE_COLLECT_INIT(&value, c->type, args, 0, &errstr);
+      if (errstr) {
+         g_warning("Failed to collect value: %s", errstr);
+         g_free(errstr);
+         return;
+      }
+      uber_model_memory_set_value(memory, iter, column, &value);
+      g_value_unset(&value);
+   } while (-1 != (column = va_arg(args, gint)));
+}
+
+void
+uber_model_memory_set (UberModelMemory *memory,
+                       UberModelIter   *iter,
+                       gint             first_column,
+                       ...)
+{
+   va_list args;
+
+   g_return_if_fail(UBER_IS_MODEL_MEMORY(memory));
+   g_return_if_fail(iter);
+   g_return_if_fail(first_column >= 0);
+
+   va_start(args, first_column);
+   uber_model_memory_set_valist(memory, iter, first_column, args);
+   va_end(args);
 }
 
 static GType
