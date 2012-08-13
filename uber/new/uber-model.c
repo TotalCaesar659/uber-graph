@@ -16,6 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib-object.h>
+#include <gobject/gvaluecollector.h>
+
 #include "uber-model.h"
 
 guint
@@ -59,6 +62,49 @@ uber_model_iter_next (UberModel     *model,
                       UberModelIter *iter)
 {
    return UBER_MODEL_GET_INTERFACE(model)->iter_next(model, iter);
+}
+
+static void
+uber_model_get_valist (UberModel     *model,
+                       UberModelIter *iter,
+                       gint           first_column,
+                       va_list        args)
+{
+   GValue value = { 0 };
+   gchar *errstr = NULL;
+   gint column = first_column;
+
+   g_assert(UBER_IS_MODEL(model));
+   g_assert(iter);
+   g_assert(first_column >= 0);
+
+   do {
+      uber_model_get_value(model, iter, column, &value);
+      G_VALUE_LCOPY(&value, args, 0, &errstr);
+      if (errstr) {
+         g_warning("Failed to copy value: %s", errstr);
+         g_free(errstr);
+         return;
+      }
+      g_value_unset(&value);
+   } while (-1 != (column = va_arg(args, gint)));
+}
+
+void
+uber_model_get (UberModel     *model,
+                UberModelIter *iter,
+                gint           first_column,
+                ...)
+{
+   va_list args;
+
+   g_return_if_fail(UBER_IS_MODEL(model));
+   g_return_if_fail(iter);
+   g_return_if_fail(first_column >= 0);
+
+   va_start(args, first_column);
+   uber_model_get_valist(model, iter, first_column, args);
+   va_end(args);
 }
 
 GType

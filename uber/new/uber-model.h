@@ -65,6 +65,10 @@ GType    uber_model_get_column_type (UberModel     *model,
 guint    uber_model_get_n_columns   (UberModel     *model);
 guint    uber_model_get_n_rows      (UberModel     *model);
 GType    uber_model_get_type        (void) G_GNUC_CONST;
+void     uber_model_get             (UberModel     *model,
+                                     UberModelIter *iter,
+                                     gint          first_column,
+                                     ...);
 void     uber_model_get_value       (UberModel     *model,
                                      UberModelIter *iter,
                                      guint          column,
