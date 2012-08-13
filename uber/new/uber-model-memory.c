@@ -98,7 +98,7 @@ uber_model_memory_append (UberModelMemory *memory,
                           UberModelIter   *iter)
 {
    UberModelMemoryPrivate *priv;
-   guint8 data[8] = { 0 };
+   const guint8 data[sizeof(gdouble)] = { 0 };
    Column *c;
    guint i;
 
