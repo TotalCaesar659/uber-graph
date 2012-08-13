@@ -24,9 +24,8 @@
 struct _UberModelMemoryPrivate
 {
    GArray *columns;
-   guint   n_appended;
    guint   n_rows;
-   guint   offset;
+   gint    offset;
 };
 
 typedef struct
@@ -98,9 +97,23 @@ void
 uber_model_memory_append (UberModelMemory *memory,
                           UberModelIter   *iter)
 {
-   /*
-    * TODO: Get the row for now.
-    */
+   UberModelMemoryPrivate *priv;
+   guint8 data[8] = { 0 };
+   Column *c;
+   guint i;
+
+   g_return_if_fail(UBER_IS_MODEL_MEMORY(memory));
+   g_return_if_fail(iter);
+
+   priv = memory->priv;
+
+   priv->offset = (priv->offset + 1) % priv->n_rows;
+   iter->user_data = GINT_TO_POINTER(priv->offset);
+
+   for (i = 0; i < priv->columns->len; i++) {
+      c = &g_array_index(priv->columns, Column, i);
+      g_ring_append_val(c->values, data);
+   }
 }
 
 static Column *
@@ -121,7 +134,7 @@ uber_model_memory_set_value (UberModelMemory *memory,
                              const GValue    *value)
 {
    Column *c;
-   guint index;
+   guint offset;
 
    g_return_if_fail(UBER_IS_MODEL_MEMORY(memory));
    g_return_if_fail(iter);
@@ -133,31 +146,31 @@ uber_model_memory_set_value (UberModelMemory *memory,
    }
 
    /*
-    * Get the position in the ring buffer.
+    * TODO: Get the ring offset from iter->user_data.
     */
-   index = GPOINTER_TO_INT(iter->user_data);
+   offset = 0;
 
    /*
     * Set the value in the array based on the column type.
     */
    switch (c->type) {
    case G_TYPE_DOUBLE:
-      g_ring_index(c->values, gdouble, index) = value->data[0].v_double;
+      g_ring_index(c->values, gdouble, offset) = value->data[0].v_double;
       break;
    case G_TYPE_FLOAT:
-      g_ring_index(c->values, gfloat, index) = value->data[0].v_float;
+      g_ring_index(c->values, gfloat, offset) = value->data[0].v_float;
       break;
    case G_TYPE_INT:
-      g_ring_index(c->values, gint, index) = value->data[0].v_int;
+      g_ring_index(c->values, gint, offset) = value->data[0].v_int;
       break;
    case G_TYPE_INT64:
-      g_ring_index(c->values, gint64, index) = value->data[0].v_int64;
+      g_ring_index(c->values, gint64, offset) = value->data[0].v_int64;
       break;
    case G_TYPE_UINT:
-      g_ring_index(c->values, guint, index) = value->data[0].v_uint;
+      g_ring_index(c->values, guint, offset) = value->data[0].v_uint;
       break;
    case G_TYPE_UINT64:
-      g_ring_index(c->values, guint64, index) = value->data[0].v_uint64;
+      g_ring_index(c->values, guint64, offset) = value->data[0].v_uint64;
       break;
    default:
       g_assert_not_reached();
@@ -204,7 +217,7 @@ uber_model_memory_get_value (UberModel     *model,
 {
    UberModelMemory *memory = (UberModelMemory *)model;
    Column *c;
-   guint row;
+   guint index;
 
    g_return_if_fail(UBER_IS_MODEL_MEMORY(memory));
    g_return_if_fail(iter);
@@ -219,15 +232,14 @@ uber_model_memory_get_value (UberModel     *model,
    }
 
    /*
+    * Get the desired offset from the iter.
+    */
+   index = GPOINTER_TO_INT(iter->user_data2);
+
+   /*
     * Initialize the GType to contain our value.
     */
    g_value_init(value, c->type);
-
-   /*
-    * Get the index of the value in the array taking into account the
-    * ring buffer position.
-    */
-   row = GPOINTER_TO_INT(iter->user_data2);
 
    /*
     * Copy the value from the array to the output value.
@@ -235,27 +247,27 @@ uber_model_memory_get_value (UberModel     *model,
    switch (c->type) {
    case G_TYPE_DOUBLE:
       g_value_set_double(value,
-                         g_ring_index(c->values, gdouble, row));
+                         g_ring_index(c->values, gdouble, index));
       break;
    case G_TYPE_FLOAT:
       g_value_set_float(value,
-                        g_ring_index(c->values, gfloat, row));
+                        g_ring_index(c->values, gfloat, index));
       break;
    case G_TYPE_INT:
       g_value_set_int(value,
-                      g_ring_index(c->values, gint, row));
+                      g_ring_index(c->values, gint, index));
       break;
    case G_TYPE_INT64:
       g_value_set_int64(value,
-                        g_ring_index(c->values, gint64, row));
+                        g_ring_index(c->values, gint64, index));
       break;
    case G_TYPE_UINT:
       g_value_set_uint(value,
-                       g_ring_index(c->values, guint, row));
+                       g_ring_index(c->values, guint, index));
       break;
    case G_TYPE_UINT64:
       g_value_set_uint64(value,
-                         g_ring_index(c->values, guint64, row));
+                         g_ring_index(c->values, guint64, index));
       break;
    default:
       g_assert_not_reached();
@@ -278,8 +290,10 @@ uber_model_memory_get_iter_at_row (UberModel     *model,
    memset(iter, 0, sizeof *iter);
    iter->user_data = GINT_TO_POINTER(priv->offset);
    iter->user_data2 = GINT_TO_POINTER(row);
-
-   return GPOINTER_TO_INT(iter->user_data2) < priv->n_appended;
+   /*
+    * TODO: Check.
+    */
+   return GPOINTER_TO_INT(iter->user_data2) < priv->n_rows;
 }
 
 static gboolean
@@ -294,7 +308,10 @@ uber_model_memory_iter_next (UberModel     *model,
 
    priv = memory->priv;
    iter->user_data2 = GINT_TO_POINTER(GPOINTER_TO_INT(iter->user_data2) + 1);
-   return GPOINTER_TO_INT(iter->user_data2) < priv->n_appended;
+   /*
+    * TODO: Check.
+    */
+   return GPOINTER_TO_INT(iter->user_data2) < priv->n_rows;
 }
 
 static void
@@ -322,6 +339,7 @@ uber_model_memory_init (UberModelMemory *memory)
                                   UberModelMemoryPrivate);
    memory->priv->n_rows = 60;
    memory->priv->columns = g_array_new(FALSE, TRUE, sizeof(Column));
+   memory->priv->offset = 0;
 }
 
 static void

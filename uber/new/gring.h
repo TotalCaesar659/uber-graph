@@ -30,9 +30,6 @@ G_BEGIN_DECLS
  *
  * Appends a value to the ring buffer.  @val must be a variable as it is
  * referenced to.
- *
- * Returns: None.
- * Side effects: None.
  */
 #define g_ring_append_val(ring, val) g_ring_append_vals(ring, &(val), 1)
 
@@ -53,16 +50,16 @@ G_BEGIN_DECLS
  *
  * Returns: The value at the given index.
  */
-#define g_ring_index(ring, type, i)                                   \
-    (((type*)(ring)->data)[(((gint)(ring)->pos - 1 - (i)) >= 0) ?     \
-                            ((ring)->pos - 1 - (i)) :                 \
-                            ((ring)->len + ((ring)->pos - 1 - (i)))])
+#define g_ring_index(ring, type, i)                                      \
+    (((type *)&(ring)->data[0])[(((gint)((ring)->pos - 1 - (i))) >= 0) ? \
+                                ((ring)->pos - 1 - (i)) :                \
+                                ((ring)->pos - 1 - (i)) + (ring)->len])
 
 typedef struct
 {
 	guint8 *data;
-	guint   len;
-	guint   pos;
+	gint    len;
+	gint    pos;
 } GRing;
 
 GType  g_ring_get_type    (void) G_GNUC_CONST;
