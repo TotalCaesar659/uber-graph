@@ -19,8 +19,7 @@
 #ifndef UBER_RENDERER_EVENT_H
 #define UBER_RENDERER_EVENT_H
 
-#include <perfkit/perfkit.h>
-
+#include "uber-model.h"
 #include "uber-renderer.h"
 
 G_BEGIN_DECLS
@@ -52,10 +51,10 @@ struct _UberRendererEventClass
 
 GType uber_renderer_event_get_type (void) G_GNUC_CONST;
 gint  uber_renderer_event_append   (UberRendererEvent *event,
-                                   PkModel          *model,
-                                   GQuark            key);
+                                    UberModel         *model,
+                                    guint              column);
 void  uber_renderer_event_remove   (UberRendererEvent *event,
-                                   gint              identifier);
+                                    gint               identifier);
 
 G_END_DECLS
 

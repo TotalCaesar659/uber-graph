@@ -16,6 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef __linux__
+#include <sys/sysinfo.h>
+#else
+#error "You're platform is not currently supported."
+#endif
+
 #include "uber-debug.h"
 #include "uber-task.h"
 
@@ -352,7 +358,7 @@ uber_task_class_init (UberTaskClass *klass)
     * of CPUs.
     */
    threadpool = g_thread_pool_new(uber_task_thread, NULL,
-                                  uber_get_num_cpus(),
+                                  get_nprocs(),
                                   FALSE, NULL);
    if (!threadpool) {
       g_error("Failed to create task threadpool");

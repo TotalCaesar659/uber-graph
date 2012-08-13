@@ -16,13 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <perfkit/perfkit.h>
 #include <string.h>
 
 #include "uber-debug.h"
 #include "uber-renderer-line.h"
 #include "uber-task-render.h"
-#include "uber-util.h"
 
 
 typedef struct
@@ -30,7 +28,7 @@ typedef struct
    UberRendererLine *renderer; /* back pointer to renderer */
    gint              id;       /* Unique line identifier */
    GQuark            key;      /* Key within model to get value */
-   PkModel          *model;    /* Model containing data points */
+   UberModel        *model;    /* Model containing data points */
    GdkColor          color;    /* gdk_cairo_set_source_color() */
    gboolean          fill;     /* Should we fill the line */
    gdouble           width;    /* cairo_set_line_width() */

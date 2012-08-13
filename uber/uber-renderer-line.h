@@ -19,8 +19,7 @@
 #ifndef UBER_RENDERER_LINE_H
 #define UBER_RENDERER_LINE_H
 
-#include <perfkit/perfkit.h>
-
+#include "uber-model.h"
 #include "uber-renderer.h"
 
 G_BEGIN_DECLS
@@ -52,16 +51,16 @@ struct _UberRendererLineClass
 
 GType uber_renderer_line_get_type    (void) G_GNUC_CONST;
 gint  uber_renderer_line_append      (UberRendererLine *line,
-                                     PkModel         *model,
-                                     GQuark           key);
+                                      UberModel        *model,
+                                      guint             column);
 void  uber_renderer_line_remove      (UberRendererLine *line,
-                                     gint             identifier);
+                                      gint              identifier);
 void  uber_renderer_line_set_styling (UberRendererLine *line,
-                                     gint             identifier,
-                                     const GdkColor  *color,
-                                     gdouble          line_width,
-                                     gdouble         *dashes,
-                                     gint             n_dashes);
+                                      gint              identifier,
+                                      const GdkColor   *color,
+                                      gdouble           line_width,
+                                      gdouble          *dashes,
+                                      gint              n_dashes);
 
 G_END_DECLS
 

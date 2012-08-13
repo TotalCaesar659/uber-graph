@@ -16,13 +16,13 @@ uber_HEADERS = $(INST_H_FILES)
 INST_H_FILES =				\
 	uber/uber-graph.h		\
 	uber/uber-renderer.h		\
-	uber/uber-renderer-event.h	\
-	uber/uber-renderer-line.h
+	uber/uber-renderer-line.h	\
+	uber/uber-task.h		\
+	uber/uber-task-render.h
 
 NOINST_H_FILES =			\
 	uber/uber-debug.h		\
 	uber/uber-frame-source.h	\
-	uber/uber-task.h		\
 	uber/uber-timeout-interval.h
 
 libuber_1_0_la_SOURCES = 		\
@@ -31,17 +31,18 @@ libuber_1_0_la_SOURCES = 		\
 	uber/uber-frame-source.c	\
 	uber/uber-graph.c		\
 	uber/uber-renderer.c		\
-	uber/uber-renderer-event.c	\
 	uber/uber-renderer-line.c	\
 	uber/uber-task.c		\
+	uber/uber-task-render.c		\
 	uber/uber-timeout-interval.c
 
 UBER_GIR_FILES =			\
 	$(INST_H_FILES)			\
 	uber/uber-graph.c		\
 	uber/uber-renderer.c		\
-	uber/uber-renderer-event.c	\
-	uber/uber-renderer-line.c
+	uber/uber-renderer-line.c	\
+	uber/uber-task.c		\
+	uber/uber-task-render.c
 
 libuber_1_0_la_CFLAGS =
 libuber_1_0_la_CFLAGS += $(GTK_CFLAGS)
