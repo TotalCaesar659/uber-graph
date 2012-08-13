@@ -32,23 +32,22 @@ typedef struct _UberTimeoutInterval UberTimeoutInterval;
 
 struct _UberTimeoutInterval
 {
-  gint64 start_time;
+  GTimeVal start_time;
   guint frame_count, fps;
 };
 
 void _uber_timeout_interval_init (UberTimeoutInterval *interval,
-                                     guint fps);
+                                 guint fps);
 
-gboolean _uber_timeout_interval_prepare (gint64 current_time,
-                                            UberTimeoutInterval *interval,
-                                            gint *delay);
+gboolean _uber_timeout_interval_prepare (const GTimeVal *current_time,
+                                        UberTimeoutInterval *interval,
+                                        gint *delay);
 
 gboolean _uber_timeout_interval_dispatch (UberTimeoutInterval *interval,
-                                             GSourceFunc     callback,
-                                             gpointer        user_data);
+                                         GSourceFunc     callback,
+                                         gpointer        user_data);
 
-gint _uber_timeout_interval_compare_expiration
-                                              (const UberTimeoutInterval *a,
+gint _uber_timeout_interval_compare_expiration (const UberTimeoutInterval *a,
                                                const UberTimeoutInterval *b);
 
 G_END_DECLS

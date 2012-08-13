@@ -14,35 +14,34 @@ uberdir = $(pkgincludedir)/uber
 uber_HEADERS = $(INST_H_FILES)
 
 INST_H_FILES =				\
-	uber/uber.h			\
 	uber/uber-graph.h		\
-	uber/uber-frame-source.h	\
-	uber/uber-heat-map.h		\
-	uber/uber-line-graph.h		\
-	uber/uber-label.h		\
-	uber/uber-range.h		\
-	uber/uber-scale.h		\
-	uber/uber-scatter.h		\
-	uber/uber-timeout-interval.h
+	uber/uber-renderer.h		\
+	uber/uber-renderer-event.h	\
+	uber/uber-renderer-line.h
 
 NOINST_H_FILES =			\
-	uber/uber-window.h		\
-	uber/g-ring.h
+	uber/uber-debug.h		\
+	uber/uber-frame-source.h	\
+	uber/uber-task.h		\
+	uber/uber-timeout-interval.h
 
 libuber_1_0_la_SOURCES = 		\
 	$(INST_H_FILES)			\
 	$(NOINST_H_FILES)		\
-	uber/uber-graph.c		\
 	uber/uber-frame-source.c	\
-	uber/uber-heat-map.c		\
-	uber/uber-line-graph.c		\
-	uber/uber-label.c		\
-	uber/uber-range.c		\
-	uber/uber-scale.c		\
-	uber/uber-scatter.c		\
-	uber/uber-timeout-interval.c	\
-	uber/uber-window.c		\
-	uber/g-ring.c
+	uber/uber-graph.c		\
+	uber/uber-renderer.c		\
+	uber/uber-renderer-event.c	\
+	uber/uber-renderer-line.c	\
+	uber/uber-task.c		\
+	uber/uber-timeout-interval.c
+
+UBER_GIR_FILES =			\
+	$(INST_H_FILES)			\
+	uber/uber-graph.c		\
+	uber/uber-renderer.c		\
+	uber/uber-renderer-event.c	\
+	uber/uber-renderer-line.c
 
 libuber_1_0_la_CFLAGS =
 libuber_1_0_la_CFLAGS += $(GTK_CFLAGS)
@@ -63,7 +62,7 @@ Uber-1.0.gir: libuber-1.0.la
 Uber_1_0_gir_INCLUDES = Gtk-3.0
 Uber_1_0_gir_CFLAGS = $(GTK_CFLAGS) $(libuber_1_0_la_CPPFLAGS)
 Uber_1_0_gir_LIBS = libuber-1.0.la
-Uber_1_0_gir_FILES = $(libuber_1_0_la_SOURCES) $(INST_H_FILES)
+Uber_1_0_gir_FILES = $(UBER_GIR_FILES)
 Uber_1_0_gir_NAMESPACE = Uber
 Uber_1_0_gir_EXPORT_PACKAGES = uber-1.0
 Uber_1_0_gir_SCANNERFLAGS = 	\

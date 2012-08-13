@@ -32,39 +32,32 @@
 
 void
 _uber_timeout_interval_init (UberTimeoutInterval *interval,
-                                guint                   fps)
+                            guint                   fps)
 {
-#if GLIB_CHECK_VERSION (2, 27, 3)
-  interval->start_time = g_get_monotonic_time () / 1000;
-#else
-  {
-    GTimeVal start_time;
-    g_get_current_time (&start_time);
-    interval->start_time = start_time.tv_sec * 1000
-                         + start_time.tv_usec / 1000;
-  }
-#endif
-
+  g_get_current_time (&interval->start_time);
   interval->fps = fps;
   interval->frame_count = 0;
 }
 
-static gint64
-_uber_timeout_interval_get_ticks (gint64         current_time,
+static guint
+_uber_timeout_interval_get_ticks (const GTimeVal         *current_time,
                                      UberTimeoutInterval *interval)
 {
-  return MAX (current_time - interval->start_time, 0);
+  return ((current_time->tv_sec - interval->start_time.tv_sec) * 1000
+        + (current_time->tv_usec - interval->start_time.tv_usec) / 1000);
 }
 
 gboolean
-_uber_timeout_interval_prepare (gint64         current_time,
-                                   UberTimeoutInterval *interval,
-                                   gint                   *delay)
+_uber_timeout_interval_prepare (const GTimeVal         *current_time,
+                               UberTimeoutInterval *interval,
+                               gint                   *delay)
 {
-  gint elapsed_time, new_frame_num;
+  guint elapsed_time, new_frame_num;
 
-  elapsed_time = _uber_timeout_interval_get_ticks (current_time, interval);
-  new_frame_num = elapsed_time * interval->fps / 1000;
+  elapsed_time = _uber_timeout_interval_get_ticks (current_time,
+                                                      interval);
+  new_frame_num = elapsed_time * interval->fps
+                / 1000;
 
   /* If time has gone backwards or the time since the last frame is
      greater than the two frames worth then reset the time and do a
@@ -76,10 +69,10 @@ _uber_timeout_interval_prepare (gint64         current_time,
       guint frame_time = (1000 + interval->fps - 1) / interval->fps;
 
       /* Reset the start time */
-      interval->start_time = current_time;
+      interval->start_time = *current_time;
 
       /* Move the start time as if one whole frame has elapsed */
-      interval->start_time -= frame_time;
+      g_time_val_add (&interval->start_time, -(gint) frame_time * 1000);
 
       interval->frame_count = 0;
 
@@ -107,8 +100,8 @@ _uber_timeout_interval_prepare (gint64         current_time,
 
 gboolean
 _uber_timeout_interval_dispatch (UberTimeoutInterval *interval,
-                                    GSourceFunc             callback,
-                                    gpointer                user_data)
+                                GSourceFunc             callback,
+                                gpointer                user_data)
 {
   if ((* callback) (user_data))
     {
@@ -122,14 +115,15 @@ _uber_timeout_interval_dispatch (UberTimeoutInterval *interval,
 
 gint
 _uber_timeout_interval_compare_expiration (const UberTimeoutInterval *a,
-                                              const UberTimeoutInterval *b)
+                                          const UberTimeoutInterval *b)
 {
   guint a_delay = 1000 / a->fps;
   guint b_delay = 1000 / b->fps;
-  gint64 b_difference;
+  glong b_difference;
   gint comparison;
 
-  b_difference = a->start_time - b->start_time;
+  b_difference = ((a->start_time.tv_sec - b->start_time.tv_sec) * 1000
+               + (a->start_time.tv_usec - b->start_time.tv_usec) / 1000);
 
   comparison = ((gint) ((a->frame_count + 1) * a_delay)
              - (gint) ((b->frame_count + 1) * b_delay + b_difference));
