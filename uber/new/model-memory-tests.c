@@ -51,6 +51,8 @@ test1 (void)
       } while (uber_model_iter_next(model, &iter));
    }
 
+   g_assert_cmpint(c, ==, 999 - 60);
+
    g_object_unref(model);
 }
 
