@@ -246,28 +246,22 @@ uber_model_memory_get_value (UberModel     *model,
     */
    switch (c->type) {
    case G_TYPE_DOUBLE:
-      g_value_set_double(value,
-                         g_ring_index(c->values, gdouble, index));
+      value->data[0].v_double = g_ring_index(c->values, gdouble, index);
       break;
    case G_TYPE_FLOAT:
-      g_value_set_float(value,
-                        g_ring_index(c->values, gfloat, index));
+      value->data[0].v_float = g_ring_index(c->values, gfloat, index);
       break;
    case G_TYPE_INT:
-      g_value_set_int(value,
-                      g_ring_index(c->values, gint, index));
+      value->data[0].v_int = g_ring_index(c->values, gint, index);
       break;
    case G_TYPE_INT64:
-      g_value_set_int64(value,
-                        g_ring_index(c->values, gint64, index));
+      value->data[0].v_int64 = g_ring_index(c->values, gint64, index);
       break;
    case G_TYPE_UINT:
-      g_value_set_uint(value,
-                       g_ring_index(c->values, guint, index));
+      value->data[0].v_uint = g_ring_index(c->values, guint, index);
       break;
    case G_TYPE_UINT64:
-      g_value_set_uint64(value,
-                         g_ring_index(c->values, guint64, index));
+      value->data[0].v_uint64 = g_ring_index(c->values, guint64, index);
       break;
    default:
       g_assert_not_reached();
