@@ -23,6 +23,7 @@
 #include "uber-frame-source.h"
 #include "uber-graph.h"
 #include "uber-renderer.h"
+#include "uber-util.h"
 
 
 #define FRAMES_PER_SECOND      30
@@ -84,15 +85,6 @@ static void uber_graph_render_foreground (UberGraph *graph,
 
 static gboolean UBER_GRAPH_DEBUG;
 static guint    signals[SIGNAL_LAST] = { 0 };
-
-
-gdouble
-uber_get_current_time (void)
-{
-	GTimeVal tv;
-	g_get_current_time(&tv);
-	return tv.tv_sec + (tv.tv_usec / (gdouble)G_USEC_PER_SEC);
-}
 
 
 static gboolean
