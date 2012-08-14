@@ -709,7 +709,7 @@ uber_graph_set_flags (UberGraph      *graph,
 
 static void
 uber_graph_size_allocate (GtkWidget     *widget,
-                            GtkAllocation *alloc)
+                          GtkAllocation *alloc)
 {
    UberGraphPrivate *priv;
    PangoLayout *layout;
@@ -813,7 +813,7 @@ uber_graph_size_allocate (GtkWidget     *widget,
 
 static gboolean
 uber_graph_draw (GtkWidget *widget,
-                   cairo_t   *cr)
+                 cairo_t   *cr)
 {
    UberGraph *graph = (UberGraph *)widget;
    UberGraphPrivate *priv;
@@ -831,7 +831,7 @@ uber_graph_draw (GtkWidget *widget,
    priv = graph->priv;
    priv->frame_count++;
 
-   if (gtk_widget_is_drawable(widget)) {
+   if (gtk_widget_is_drawable(widget) && priv->background && priv->foreground) {
       /*
        * Ensure everything is order.
        */
@@ -938,7 +938,7 @@ uber_graph_set_max_lines (UberGraph *graph,
 
 static void
 uber_graph_set_min_lines (UberGraph *graph,
-                            gint        min_lines)
+                          gint        min_lines)
 {
    g_return_if_fail(UBER_IS_GRAPH(graph));
 
@@ -974,9 +974,9 @@ uber_graph_get_preferred_height (GtkWidget *widget,
 
 static gboolean
 uber_graph_string_accumulator (GSignalInvocationHint *ihint,
-                                 GValue                *return_accu,
-                                 const GValue          *handler_return,
-                                 gpointer               data)
+                               GValue                *return_accu,
+                               const GValue          *handler_return,
+                               gpointer               data)
 {
    if (g_value_get_string(handler_return)) {
       g_value_copy(handler_return, return_accu);
