@@ -53,7 +53,8 @@ UberModel *uber_model_memory_new       (guint n_columns,
                                         GType first_type,
                                         ...);
 void       uber_model_memory_append    (UberModelMemory *memory,
-                                        UberModelIter   *iter);
+                                        UberModelIter   *iter,
+                                        gdouble          timestamp);
 void       uber_model_memory_set       (UberModelMemory *memory,
                                         UberModelIter   *iter,
                                         gint             first_column,

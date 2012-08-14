@@ -20,11 +20,15 @@
 #include <gobject/gvaluecollector.h>
 
 #include "gring.h"
+
+#include "uber-debug.h"
 #include "uber-model-memory.h"
+#include "uber-util.h"
 
 struct _UberModelMemoryPrivate
 {
    GArray *columns;
+   GRing  *timestamps;
    guint   n_rows;
    guint   next_offset;
 };
@@ -35,6 +39,14 @@ typedef struct
    GRing *values;
 } Column;
 
+enum
+{
+   PROP_0,
+   PROP_BEGIN_TIME,
+   PROP_END_TIME,
+   LAST_PROP
+};
+
 static void uber_model_init (UberModelIface *iface);
 
 G_DEFINE_TYPE_EXTENDED(UberModelMemory,
@@ -43,6 +55,8 @@ G_DEFINE_TYPE_EXTENDED(UberModelMemory,
                        0,
                        G_IMPLEMENT_INTERFACE(UBER_TYPE_MODEL,
                                              uber_model_init))
+
+static GParamSpec *gParamSpecs[LAST_PROP];
 
 /**
  * uber_model_memory_new:
@@ -105,7 +119,8 @@ uber_model_memory_new (guint n_columns,
 
 void
 uber_model_memory_append (UberModelMemory *memory,
-                          UberModelIter   *iter)
+                          UberModelIter   *iter,
+                          gdouble          timestamp)
 {
    UberModelMemoryPrivate *priv;
    const guint8 data[sizeof(gdouble)] = { 0 };
@@ -117,6 +132,10 @@ uber_model_memory_append (UberModelMemory *memory,
 
    priv = memory->priv;
 
+   if (timestamp == 0.0) {
+      timestamp = uber_get_current_time();
+   }
+
    memset(iter, 0, sizeof *iter);
    iter->user_data = GINT_TO_POINTER(priv->next_offset);
    priv->next_offset++;
@@ -125,6 +144,10 @@ uber_model_memory_append (UberModelMemory *memory,
       c = &g_array_index(priv->columns, Column, i);
       g_ring_append_val(c->values, data);
    }
+
+   g_ring_append_val(priv->timestamps, timestamp);
+
+   g_object_notify_by_pspec(G_OBJECT(memory), gParamSpecs[PROP_END_TIME]);
 }
 
 static Column *
@@ -369,6 +392,42 @@ uber_model_memory_iter_next (UberModel     *model,
    return GPOINTER_TO_INT(iter->user_data2) < priv->n_rows;
 }
 
+static gdouble
+uber_model_memory_get_begin_time (UberModel *model)
+{
+   UberModelMemoryPrivate *priv;
+   UberModelMemory *memory = (UberModelMemory *)model;
+   gdouble ret = 0.0;
+   gint i;
+
+   ENTRY;
+
+   g_return_val_if_fail(UBER_IS_MODEL_MEMORY(memory), 0.0);
+
+   priv = memory->priv;
+
+   for (i = priv->timestamps->len; i >= 0; i--) {
+      ret = g_ring_index(priv->timestamps, gdouble, i);
+      if (ret != 0.0) {
+         break;
+      }
+   }
+
+   RETURN(ret);
+}
+
+static gdouble
+uber_model_memory_get_end_time (UberModel *model)
+{
+   UberModelMemory *memory = (UberModelMemory *)model;
+   gdouble ret;
+
+   ENTRY;
+   g_return_val_if_fail(UBER_IS_MODEL_MEMORY(memory), 0.0);
+   ret = g_ring_index(memory->priv->timestamps, gdouble, 0);
+   RETURN(ret);
+}
+
 static void
 uber_model_memory_finalize (GObject *object)
 {
@@ -379,13 +438,58 @@ uber_model_memory_finalize (GObject *object)
 }
 
 static void
+uber_model_memory_get_property (GObject    *object,
+                                guint       prop_id,
+                                GValue     *value,
+                                GParamSpec *pspec)
+{
+   UberModelMemory *memory = UBER_MODEL_MEMORY(object);
+
+   switch (prop_id) {
+   case PROP_BEGIN_TIME:
+      g_value_set_double(value,
+                         uber_model_memory_get_begin_time(UBER_MODEL(memory)));
+      break;
+   case PROP_END_TIME:
+      g_value_set_double(value,
+                         uber_model_memory_get_end_time(UBER_MODEL(memory)));
+      break;
+   default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+   }
+}
+
+static void
 uber_model_memory_class_init (UberModelMemoryClass *klass)
 {
    GObjectClass *object_class;
 
    object_class = G_OBJECT_CLASS(klass);
    object_class->finalize = uber_model_memory_finalize;
+   object_class->get_property = uber_model_memory_get_property;
    g_type_class_add_private(object_class, sizeof(UberModelMemoryPrivate));
+
+   gParamSpecs[PROP_BEGIN_TIME] =
+      g_param_spec_double("begin-time",
+                          _("Begin Time"),
+                          _("Timestamp of most ancient datapoint."),
+                          0.0,
+                          G_MAXDOUBLE,
+                          0.0,
+                          G_PARAM_READABLE);
+   g_object_class_install_property(object_class, PROP_BEGIN_TIME,
+                                   gParamSpecs[PROP_BEGIN_TIME]);
+
+   gParamSpecs[PROP_END_TIME] =
+      g_param_spec_double("end-time",
+                          _("End Time"),
+                          _("Timestamp of most recent datapoint."),
+                          0.0,
+                          G_MAXDOUBLE,
+                          0.0,
+                          G_PARAM_READABLE);
+   g_object_class_install_property(object_class, PROP_END_TIME,
+                                   gParamSpecs[PROP_END_TIME]);
 }
 
 static void
@@ -398,12 +502,16 @@ uber_model_memory_init (UberModelMemory *memory)
    memory->priv->n_rows = 60;
    memory->priv->columns = g_array_new(FALSE, TRUE, sizeof(Column));
    memory->priv->next_offset = 0;
+   memory->priv->timestamps = g_ring_sized_new(sizeof(gdouble),
+                                               memory->priv->n_rows,
+                                               NULL);
 }
 
 static void
 uber_model_init (UberModelIface *iface)
 {
    iface->get_column_type = uber_model_memory_get_column_type;
+   iface->get_end_time = uber_model_memory_get_end_time;
    iface->get_n_columns = uber_model_memory_get_n_columns;
    iface->get_n_rows = uber_model_memory_get_n_rows;
    iface->get_value = uber_model_memory_get_value;
