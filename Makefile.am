@@ -15,12 +15,15 @@ uber_HEADERS = $(INST_H_FILES)
 
 INST_H_FILES =				\
 	uber/uber-graph.h		\
+	uber/uber-model.h		\
+	uber/uber-model-memory.h	\
 	uber/uber-renderer.h		\
 	uber/uber-renderer-line.h	\
 	uber/uber-task.h		\
 	uber/uber-task-render.h
 
 NOINST_H_FILES =			\
+	uber/gring.h			\
 	uber/uber-debug.h		\
 	uber/uber-frame-source.h	\
 	uber/uber-timeout-interval.h
@@ -28,8 +31,11 @@ NOINST_H_FILES =			\
 libuber_1_0_la_SOURCES = 		\
 	$(INST_H_FILES)			\
 	$(NOINST_H_FILES)		\
+	uber/gring.c			\
 	uber/uber-frame-source.c	\
 	uber/uber-graph.c		\
+	uber/uber-model.c		\
+	uber/uber-model-memory.c	\
 	uber/uber-renderer.c		\
 	uber/uber-renderer-line.c	\
 	uber/uber-task.c		\
