@@ -490,6 +490,8 @@ uber_graph_render_background (UberGraph *graph)
    gint height;
    gint width;
 
+   ENTRY;
+
    g_return_if_fail(UBER_IS_GRAPH(graph));
 
    priv = graph->priv;
@@ -600,6 +602,8 @@ uber_graph_render_background (UberGraph *graph)
     */
    g_object_unref(layout);
    cairo_destroy(cr);
+
+   EXIT;
 }
 
 

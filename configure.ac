@@ -98,6 +98,7 @@ AS_CASE([$enable_debug],
 		CFLAGS="$CFLAGS -Wmissing-format-attribute"
 		CFLAGS="$CFLAGS -Wnested-externs"
 		CFLAGS="$CFLAGS -Wshadow"
+		CFLAGS="$CFLAGS -DUBER_TRACE"
 	],
 	[minimum], [
 		CFLAGS="$CFLAGS -DG_DISABLE_CAST_CHECKS"
