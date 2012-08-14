@@ -313,18 +313,28 @@ uber_model_memory_get_value (UberModel     *model,
    priv = memory->priv;
 
    /*
+    * Get the desired offset from the iter.
+    */
+   offset = priv->next_offset - GPOINTER_TO_INT(iter->user_data) - 1;
+   offset += GPOINTER_TO_INT(iter->user_data2);
+
+   /*
+    * Check to see if we really want the timestamp.
+    */
+   if (column == G_MAXUINT) {
+      g_value_init(value, G_TYPE_DOUBLE);
+      g_value_set_double(value,
+                         g_ring_index(priv->timestamps, gdouble, offset));
+      return;
+   }
+
+   /*
     * Get the column requested.
     */
    if (!(c = uber_model_memory_get_column(memory, column))) {
       g_warning("No such column: %u", column);
       return;
    }
-
-   /*
-    * Get the desired offset from the iter.
-    */
-   offset = priv->next_offset - GPOINTER_TO_INT(iter->user_data) - 1;
-   offset += GPOINTER_TO_INT(iter->user_data2);
 
    /*
     * Initialize the GType to contain our value.
@@ -365,6 +375,8 @@ uber_model_memory_get_iter_at_row (UberModel     *model,
 {
    UberModelMemoryPrivate *priv;
    UberModelMemory *memory = (UberModelMemory *)model;
+   GValue value = { 0 };
+   gboolean ret;
 
    g_return_val_if_fail(UBER_IS_MODEL_MEMORY(memory), FALSE);
    g_return_val_if_fail(iter, FALSE);
@@ -374,7 +386,12 @@ uber_model_memory_get_iter_at_row (UberModel     *model,
    memset(iter, 0, sizeof *iter);
    iter->user_data = GINT_TO_POINTER(priv->next_offset) - 1;
    iter->user_data2 = GINT_TO_POINTER(row);
-   return GPOINTER_TO_INT(iter->user_data2) < priv->n_rows;
+   if ((ret = GPOINTER_TO_INT(iter->user_data2) < priv->n_rows)) {
+      uber_model_memory_get_value(model, iter, G_MAXUINT, &value);
+      iter->time = g_value_get_double(&value);
+      g_value_unset(&value);
+   }
+   return ret;
 }
 
 static gboolean
@@ -383,13 +400,84 @@ uber_model_memory_iter_next (UberModel     *model,
 {
    UberModelMemoryPrivate *priv;
    UberModelMemory *memory = (UberModelMemory *)model;
+   gboolean ret = FALSE;
+   GValue value = { 0 };
+
+   ENTRY;
 
    g_return_val_if_fail(UBER_IS_MODEL_MEMORY(memory), FALSE);
    g_return_val_if_fail(iter, FALSE);
 
    priv = memory->priv;
+
    iter->user_data2 = GINT_TO_POINTER(GPOINTER_TO_INT(iter->user_data2) + 1);
-   return GPOINTER_TO_INT(iter->user_data2) < priv->n_rows;
+   if (iter->user_data3 && iter->user_data2 > iter->user_data3) {
+      RETURN(ret);
+   }
+   ret = GPOINTER_TO_INT(iter->user_data2) < priv->n_rows;
+   if ((ret = GPOINTER_TO_INT(iter->user_data2) < priv->n_rows)) {
+      uber_model_memory_get_value(model, iter, G_MAXUINT, &value);
+      iter->time = g_value_get_double(&value);
+      g_value_unset(&value);
+   }
+   RETURN(ret);
+}
+
+static gboolean
+uber_model_memory_get_iter_for_range (UberModel     *model,
+                                      UberModelIter *iter,
+                                      gdouble        begin_time,
+                                      gdouble        end_time,
+                                      gdouble        aggregate_time)
+{
+   UberModelMemoryPrivate *priv;
+   UberModelMemory *memory = (UberModelMemory *)model;
+   gboolean ret;
+   gdouble timestamp;
+   GValue value = { 0 };
+   guint begin_row = 0;
+   guint end_row = 0;
+   guint i;
+
+   g_return_val_if_fail(UBER_IS_MODEL_MEMORY(memory), FALSE);
+   g_return_val_if_fail(iter, FALSE);
+
+   priv = memory->priv;
+
+   memset(iter, 0, sizeof *iter);
+   iter->user_data = GINT_TO_POINTER(priv->next_offset) - 1;
+
+   /*
+    * TODO: The loop code below could be done as a binary search.
+    */
+
+   for (i = 0; i < priv->n_rows; i++) {
+      timestamp = g_ring_index(priv->timestamps, gdouble, i);
+      if (timestamp < begin_time) {
+         begin_row = i;
+         break;
+      }
+   }
+
+   for (i = 0; i < priv->n_rows; i++) {
+      timestamp = g_ring_index(priv->timestamps, gdouble, i);
+      if (timestamp <= end_time) {
+         if (i > 0) {
+            end_row = i - 1;
+         }
+         break;
+      }
+   }
+
+   iter->user_data2 = GINT_TO_POINTER(begin_row);
+   iter->user_data3 = GINT_TO_POINTER(end_row);
+   if ((ret = GPOINTER_TO_INT(iter->user_data2) < priv->n_rows)) {
+      uber_model_memory_get_value(model, iter, G_MAXUINT, &value);
+      iter->time = g_value_get_double(&value);
+      g_value_unset(&value);
+   }
+
+   return ret;
 }
 
 static gdouble
@@ -516,5 +604,6 @@ uber_model_init (UberModelIface *iface)
    iface->get_n_rows = uber_model_memory_get_n_rows;
    iface->get_value = uber_model_memory_get_value;
    iface->get_iter_at_row = uber_model_memory_get_iter_at_row;
+   iface->get_iter_for_range = uber_model_memory_get_iter_for_range;
    iface->iter_next = uber_model_memory_iter_next;
 }
