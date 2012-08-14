@@ -10,6 +10,7 @@ add_randrom (gpointer data)
    uber_model_memory_append(memory, &iter, 0.0);
    uber_model_memory_set(memory, &iter,
                          0, g_random_double_range(0.0, 100.0),
+                         1, g_random_double_range(0.0, 100.0),
                          -1);
 
    return TRUE;
@@ -21,14 +22,24 @@ main (gint   argc,
 {
    GtkWindow *window;
    GtkWidget *graph;
+   GdkColor color[2];
    UberRenderer *renderer;
    UberModel *model;
+   guint id;
 
    gtk_init(&argc, &argv);
 
-   model = uber_model_memory_new(1, G_TYPE_DOUBLE);
+   gdk_color_parse("#cc0000", &color[0]);
+   gdk_color_parse("#204a87", &color[1]);
+
+   model = uber_model_memory_new(2, G_TYPE_DOUBLE, G_TYPE_DOUBLE);
    renderer = g_object_new(UBER_TYPE_RENDERER_LINE, NULL);
-   uber_renderer_line_append(UBER_RENDERER_LINE(renderer), model, 0);
+   id = uber_renderer_line_append(UBER_RENDERER_LINE(renderer), model, 0);
+   uber_renderer_line_set_styling(UBER_RENDERER_LINE(renderer), id,
+                                  &color[0], 1.0, NULL, 0);
+   id = uber_renderer_line_append(UBER_RENDERER_LINE(renderer), model, 1);
+   uber_renderer_line_set_styling(UBER_RENDERER_LINE(renderer), id,
+                                  &color[1], 1.0, NULL, 0);
    graph = g_object_new(UBER_TYPE_GRAPH,
                         "renderer", renderer,
                         "visible", TRUE,
