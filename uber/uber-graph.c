@@ -82,7 +82,7 @@ static void uber_graph_render_foreground (UberGraph *graph,
                                           gdouble     end_time);
 
 
-static gboolean UBER_GRAPH_DEBUG   = FALSE;
+static gboolean UBER_GRAPH_DEBUG;
 static guint    signals[SIGNAL_LAST] = { 0 };
 
 
@@ -671,10 +671,10 @@ uber_graph_render_foreground (UberGraph *graph,
     * contents to the surface we use to render.
     */
    task = uber_renderer_draw(priv->renderer,
-                            cairo_surface_reference(surface),
-                            begin_time,
-                            end_time,
-                            x, 0, width, height);
+                             cairo_surface_reference(surface),
+                             begin_time,
+                             end_time,
+                             x, 0, width, height);
    g_signal_connect_swapped(task, "notify::state",
                             G_CALLBACK(uber_graph_task_notify_state),
                             graph);
