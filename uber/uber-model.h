@@ -46,19 +46,25 @@ struct _UberModelIface
    GTypeInterface parent;
 
    /* interface methods */
-   GType    (*get_column_type) (UberModel     *model,
-                                guint          column);
-   guint    (*get_n_columns)   (UberModel     *model);
-   guint    (*get_n_rows)      (UberModel     *model);
-   void     (*get_value)       (UberModel     *model,
-                                UberModelIter *iter,
-                                guint          column,
-                                GValue        *value);
-   gboolean (*get_iter_at_row) (UberModel     *model,
-                                UberModelIter *iter,
-                                guint          row);
-   gboolean (*iter_next)       (UberModel     *model,
-                                UberModelIter *iter);
+   GType    (*get_column_type)    (UberModel     *model,
+                                   guint          column);
+   gdouble  (*get_end_time)       (UberModel     *model);
+   guint    (*get_n_columns)      (UberModel     *model);
+   guint    (*get_n_rows)         (UberModel     *model);
+   void     (*get_value)          (UberModel     *model,
+                                   UberModelIter *iter,
+                                   guint          column,
+                                   GValue        *value);
+   gboolean (*get_iter_at_row)    (UberModel     *model,
+                                   UberModelIter *iter,
+                                   guint          row);
+   gboolean (*get_iter_for_range) (UberModel     *model,
+                                   UberModelIter *iter,
+                                   gdouble        begin_time,
+                                   gdouble        end_time,
+                                   gdouble        aggregate_time);
+   gboolean (*iter_next)          (UberModel     *model,
+                                   UberModelIter *iter);
 };
 
 GType    uber_model_get_column_type    (UberModel     *model,

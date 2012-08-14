@@ -44,9 +44,18 @@ G_DEFINE_TYPE_EXTENDED(UberModelMemory,
                        G_IMPLEMENT_INTERFACE(UBER_TYPE_MODEL,
                                              uber_model_init))
 
+/**
+ * uber_model_memory_new:
+ * @n_columns: (in): How many column types will follow.
+ * @first_type: (in): The first column type.
+ *
+ * Creates a new instance of #UberModelMemory.
+ *
+ * Returns: (transfer full): An #UberModelMemory.
+ */
 UberModel *
 uber_model_memory_new (guint n_columns,
-                       GType first_column,
+                       GType first_type,
                        ...)
 {
    UberModelMemoryPrivate *priv;
@@ -57,13 +66,13 @@ uber_model_memory_new (guint n_columns,
    GType type_id;
 
    g_return_val_if_fail(n_columns > 0, NULL);
-   g_return_val_if_fail(first_column, NULL);
+   g_return_val_if_fail(first_type, NULL);
 
    priv = (memory = g_object_new(UBER_TYPE_MODEL_MEMORY, NULL))->priv;
 
-   type_id = first_column;
+   type_id = first_type;
 
-   va_start(args, first_column);
+   va_start(args, first_type);
 
    do {
       switch (type_id) {

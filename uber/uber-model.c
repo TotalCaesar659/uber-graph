@@ -68,13 +68,10 @@ uber_model_get_double (UberModel     *model,
    return ret;
 }
 
-void
-uber_model_get_value (UberModel     *model,
-                      UberModelIter *iter,
-                      guint          column,
-                      GValue        *value)
+gdouble
+uber_model_get_end_time (UberModel *model)
 {
-   return UBER_MODEL_GET_INTERFACE(model)->get_value(model, iter, column, value);
+   return UBER_MODEL_GET_INTERFACE(model)->get_end_time(model);
 }
 
 gboolean
@@ -83,6 +80,26 @@ uber_model_get_iter_at_row (UberModel     *model,
                             guint          row)
 {
    return UBER_MODEL_GET_INTERFACE(model)->get_iter_at_row(model, iter, row);
+}
+
+gboolean
+uber_model_get_iter_for_range (UberModel     *model,
+                               UberModelIter *iter,
+                               gdouble        begin_time,
+                               gdouble        end_time,
+                               gdouble        aggregate_time)
+{
+   return UBER_MODEL_GET_INTERFACE(model)->
+      get_iter_for_range(model, iter, begin_time, end_time, aggregate_time);
+}
+
+void
+uber_model_get_value (UberModel     *model,
+                      UberModelIter *iter,
+                      guint          column,
+                      GValue        *value)
+{
+   return UBER_MODEL_GET_INTERFACE(model)->get_value(model, iter, column, value);
 }
 
 gboolean

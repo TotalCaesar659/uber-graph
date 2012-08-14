@@ -40,7 +40,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
  * Generates an asynchronous task to complete a draw request on the given
  * surface.
  *
- * Returns: An #UberTask.
+ * Returns: (transfer full): An #UberTask.
  */
 UberTask *
 uber_renderer_draw (UberRenderer     *renderer,
@@ -67,8 +67,15 @@ uber_renderer_emit_invalidate (UberRenderer *renderer,
 	g_signal_emit(renderer, signals[INVALIDATE], 0, begin_time, end_time);
 }
 
-
-GtkAdjustment*
+/**
+ * uber_renderer_get_adjustment:
+ * @renderer: (in): A #UberRenderer.
+ *
+ * Gets an adjustment representing the range of the renderer.
+ *
+ * Returns: (transfer none): A #GtkAdjustment.
+ */
+GtkAdjustment *
 uber_renderer_get_adjustment (UberRenderer *renderer)
 {
 	g_return_val_if_fail(UBER_IS_RENDERER(renderer), NULL);

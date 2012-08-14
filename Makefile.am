@@ -45,6 +45,8 @@ libuber_1_0_la_SOURCES = 		\
 UBER_GIR_FILES =			\
 	$(INST_H_FILES)			\
 	uber/uber-graph.c		\
+	uber/uber-model.c		\
+	uber/uber-model-memory.c	\
 	uber/uber-renderer.c		\
 	uber/uber-renderer-line.c	\
 	uber/uber-task.c		\
