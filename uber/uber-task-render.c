@@ -18,9 +18,8 @@
 
 #include <gtk/gtk.h>
 
-#include "uber-log.h"
+#include "uber-debug.h"
 #include "uber-task-render.h"
-#include "uber-util.h"
 
 
 G_DEFINE_TYPE(UberTaskRender, uber_task_render, UBER_TYPE_TASK)

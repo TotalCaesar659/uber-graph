@@ -40,9 +40,9 @@ static guint signals[LAST_SIGNAL] = { 0 };
  * Generates an asynchronous task to complete a draw request on the given
  * surface.
  *
- * Returns: A #UberTask.
+ * Returns: An #UberTask.
  */
-UberTask*
+UberTask *
 uber_renderer_draw (UberRenderer     *renderer,
                     cairo_surface_t *surface,
                     gdouble          begin_time,

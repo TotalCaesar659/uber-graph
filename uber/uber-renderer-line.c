@@ -245,7 +245,7 @@ uber_renderer_line_get_adjustment (UberRenderer *renderer)
 
 
 static void
-uber_renderer_line_notify_end_time (UberModel    *model,
+uber_renderer_line_notify_end_time (UberModel  *model,
                                     GParamSpec *pspec,
                                     Line       *item)
 {
