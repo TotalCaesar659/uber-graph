@@ -987,6 +987,16 @@ uber_graph_string_accumulator (GSignalInvocationHint *ihint,
 
 
 static void
+uber_graph_realize (GtkWidget *widget)
+{
+   ENTRY;
+   GTK_WIDGET_CLASS(uber_graph_parent_class)->realize(widget);
+   gtk_widget_queue_resize(widget);
+   EXIT;
+}
+
+
+static void
 uber_graph_dispose (GObject *object)
 {
    UberGraphPrivate *priv = UBER_GRAPH(object)->priv;
@@ -1102,6 +1112,7 @@ uber_graph_class_init (UberGraphClass *klass)
    widget_class->draw = uber_graph_draw;
    widget_class->get_preferred_height = uber_graph_get_preferred_height;
    widget_class->get_preferred_width = uber_graph_get_preferred_width;
+   widget_class->realize = uber_graph_realize;
 
    klass->format_value = uber_graph_format_value;
 
