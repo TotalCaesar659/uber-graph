@@ -208,20 +208,11 @@ uber_task_render_finalize (GObject *object)
 }
 
 
-/**
- * uber_task_render_set_property:
- * @object: (in): A #GObject.
- * @prop_id: (in): The property identifier.
- * @value: (out): The given property.
- * @pspec: (in): A #ParamSpec.
- *
- * Get a given #GObject property.
- */
 static void
 uber_task_render_get_property (GObject    *object,
-                              guint       prop_id,
-                              GValue     *value,
-                              GParamSpec *pspec)
+                               guint       prop_id,
+                               GValue     *value,
+                               GParamSpec *pspec)
 {
    UberTaskRender *render = UBER_TASK_RENDER(object);
 
@@ -256,20 +247,11 @@ uber_task_render_get_property (GObject    *object,
 }
 
 
-/**
- * uber_task_render_set_property:
- * @object: (in): A #GObject.
- * @prop_id: (in): The property identifier.
- * @value: (in): The given property.
- * @pspec: (in): A #ParamSpec.
- *
- * Set a given #GObject property.
- */
 static void
 uber_task_render_set_property (GObject      *object,
-                              guint         prop_id,
-                              const GValue *value,
-                              GParamSpec   *pspec)
+                               guint         prop_id,
+                               const GValue *value,
+                               GParamSpec   *pspec)
 {
    UberTaskRender *render = UBER_TASK_RENDER(object);
 

@@ -27,7 +27,7 @@ typedef struct
 {
    UberRendererLine *renderer; /* back pointer to renderer */
    gint              id;       /* Unique line identifier */
-   GQuark            key;      /* Key within model to get value */
+   GQuark            column;   /* Column within model to get value */
    UberModel        *model;    /* Model containing data points */
    GdkColor          color;    /* gdk_cairo_set_source_color() */
    gboolean          fill;     /* Should we fill the line */
@@ -84,7 +84,7 @@ uber_renderer_line_render (UberRendererLine *line,
 {
    UberRendererLinePrivate *priv;
    cairo_surface_t *surface;
-   PkModelIter iter;
+   UberModelIter iter;
    cairo_t *cr;
    struct {
       gdouble x;
@@ -159,16 +159,16 @@ uber_renderer_line_render (UberRendererLine *line,
       cairo_set_dash(cr, item->dashes, item->n_dashes, 0.0);
       gdk_cairo_set_source_color(cr, &item->color);
 
-      if (pk_model_get_iter_for_range(item->model, &iter,
-                                      begin_time, end_time,
-                                      aggregate_time)) {
+      if (uber_model_get_iter_for_range(item->model, &iter,
+                                        begin_time, end_time,
+                                        aggregate_time)) {
          first_x = get_x_for_time(x_ratio, x, begin_time, iter.time);
          last_x = first_x;
-         value = pk_model_get_double(item->model, &iter, item->key);
+         value = uber_model_get_double(item->model, &iter, item->column);
          last_y = get_y_for_range(y_ratio, y2, begin_value, value);
          cairo_move_to(cr, last_x, last_y);
-         while (pk_model_iter_next(item->model, &iter)) {
-            value = pk_model_get_double(item->model, &iter, item->key);
+         while (uber_model_iter_next(item->model, &iter)) {
+            value = uber_model_get_double(item->model, &iter, item->column);
             point.x = get_x_for_time(x_ratio, x, begin_time, iter.time);
             point.y = get_y_for_range(y_ratio, y2, begin_value, value);
             cairo_curve_to(cr,
@@ -245,18 +245,18 @@ uber_renderer_line_get_adjustment (UberRenderer *renderer)
 
 
 static void
-uber_renderer_line_notify_end_time (PkModel    *model,
-                                   GParamSpec *pspec,
-                                   Line       *item)
+uber_renderer_line_notify_end_time (UberModel    *model,
+                                    GParamSpec *pspec,
+                                    Line       *item)
 {
    gdouble last_end_time;
 
-   g_return_if_fail(PK_IS_MODEL(model));
+   g_return_if_fail(UBER_IS_MODEL(model));
    g_return_if_fail(item != NULL);
    g_return_if_fail(UBER_IS_RENDERER_LINE(item->renderer));
 
    last_end_time = item->end_time;
-   item->end_time = pk_model_get_end_time(model);
+   item->end_time = uber_model_get_end_time(model);
    uber_renderer_emit_invalidate(UBER_RENDERER(item->renderer),
                                 last_end_time, item->end_time);
 }
@@ -264,8 +264,8 @@ uber_renderer_line_notify_end_time (PkModel    *model,
 
 gint
 uber_renderer_line_append (UberRendererLine *line,
-                          PkModel         *model,
-                          GQuark           key)
+                           UberModel        *model,
+                           guint             column)
 {
    static gint sequence = 0;
    UberRendererLinePrivate *priv;
@@ -273,15 +273,15 @@ uber_renderer_line_append (UberRendererLine *line,
    Line *new_line;
 
    g_return_val_if_fail(UBER_IS_RENDERER_LINE(line), 0);
-   g_return_val_if_fail(PK_IS_MODEL(model), 0);
-   g_return_val_if_fail(key != 0, 0);
+   g_return_val_if_fail(UBER_IS_MODEL(model), 0);
+   g_return_val_if_fail(column, 0);
 
    priv = line->priv;
 
    new_line = g_new0(Line, 1);
    new_line->renderer = line;
    new_line->id = ++sequence;
-   new_line->key = key;
+   new_line->column = column;
    new_line->width = 1.0;
    new_line->model = g_object_ref(model);
    new_line->handler =
@@ -298,7 +298,7 @@ uber_renderer_line_append (UberRendererLine *line,
 
 void
 uber_renderer_line_remove (UberRendererLine *line,
-                          gint             identifier)
+                           gint             identifier)
 {
    UberRendererLinePrivate *priv;
    UberRenderer *renderer = (UberRenderer *)line;
@@ -317,7 +317,10 @@ uber_renderer_line_remove (UberRendererLine *line,
          g_signal_handler_disconnect(item->model, item->handler);
          item->handler = 0;
          g_clear_object(&item->model);
-         uber_clear_pointer(&item->dashes, g_free);
+         if (item->dashes) {
+            g_free(item->dashes);
+            item->dashes = NULL;
+         }
          g_ptr_array_remove_index(priv->lines, i);
          uber_renderer_emit_invalidate(renderer, 0.0, 0.0);
          break;
@@ -328,11 +331,11 @@ uber_renderer_line_remove (UberRendererLine *line,
 
 void
 uber_renderer_line_set_styling (UberRendererLine *line,
-                               gint             identifier,
-                               const GdkColor  *color,
-                               gdouble          line_width,
-                               gdouble         *dashes,
-                               gint             n_dashes)
+                                gint             identifier,
+                                const GdkColor  *color,
+                                gdouble          line_width,
+                                gdouble         *dashes,
+                                gint             n_dashes)
 {
    UberRendererLinePrivate *priv;
    UberRenderer *renderer = (UberRenderer *)line;
@@ -350,7 +353,10 @@ uber_renderer_line_set_styling (UberRendererLine *line,
       if (item->id == identifier) {
          item->color = *color;
          item->width = line_width;
-         uber_clear_pointer(&item->dashes, g_free);
+         if (item->dashes) {
+            g_free(item->dashes);
+            item->dashes = NULL;
+         }
          item->n_dashes = 0;
          if (dashes) {
             item->dashes = g_new(gdouble, n_dashes);

@@ -18,16 +18,13 @@
 
 #include "uber-renderer.h"
 
-
 enum
 {
 	INVALIDATE,
 	LAST_SIGNAL
 };
 
-
 static guint signals[LAST_SIGNAL] = { 0 };
-
 
 /**
  * uber_renderer_draw:
@@ -44,36 +41,28 @@ static guint signals[LAST_SIGNAL] = { 0 };
  * surface.
  *
  * Returns: A #UberTask.
- * Side effects: None.
  */
 UberTask*
 uber_renderer_draw (UberRenderer     *renderer,
-                   cairo_surface_t *surface,
-                   gdouble          begin_time,
-                   gdouble          end_time,
-                   gdouble          x,
-                   gdouble          y,
-                   gdouble          width,
-                   gdouble          height)
+                    cairo_surface_t *surface,
+                    gdouble          begin_time,
+                    gdouble          end_time,
+                    gdouble          x,
+                    gdouble          y,
+                    gdouble          width,
+                    gdouble          height)
 {
 	g_return_val_if_fail(UBER_IS_RENDERER(renderer), NULL);
-	g_return_val_if_fail(surface != NULL, NULL);
-
-	return UBER_RENDERER_GET_INTERFACE(renderer)->draw(renderer,
-	                                                  surface,
-	                                                  begin_time,
-	                                                  end_time,
-	                                                  x,
-	                                                  y,
-	                                                  width,
-	                                                  height);
+	g_return_val_if_fail(surface, NULL);
+	return UBER_RENDERER_GET_INTERFACE(renderer)->
+      draw(renderer, surface, begin_time, end_time, x, y, width, height);
 }
 
 
 void
 uber_renderer_emit_invalidate (UberRenderer *renderer,
-                              gdouble      begin_time,
-                              gdouble      end_time)
+                               gdouble      begin_time,
+                               gdouble      end_time)
 {
 	g_signal_emit(renderer, signals[INVALIDATE], 0, begin_time, end_time);
 }

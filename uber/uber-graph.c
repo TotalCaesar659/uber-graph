@@ -161,7 +161,7 @@ uber_graph_stop (UberGraph *graph)
 
 static void
 uber_graph_adjustment_changed (UberGraph    *graph,
-                                 GtkAdjustment *adjustment)
+                               GtkAdjustment *adjustment)
 {
    UberGraphPrivate *priv;
 
@@ -179,9 +179,9 @@ uber_graph_adjustment_changed (UberGraph    *graph,
 
 static void
 uber_graph_invalidate (UberGraph  *graph,
-                         gdouble      begin_time,
-                         gdouble      end_time,
-                         UberRenderer *renderer)
+                       gdouble      begin_time,
+                       gdouble      end_time,
+                       UberRenderer *renderer)
 {
    ENTRY;
    uber_graph_render_foreground(graph, begin_time, end_time);
@@ -257,13 +257,13 @@ uber_graph_get_fg_time_for_x (UberGraph *graph,
 
 static void
 uber_graph_draw_surface_at_offset (cairo_t         *cr,
-                                     cairo_surface_t *surface,
-                                     gdouble          surface_x,
-                                     gdouble          surface_y,
-                                     gdouble          x,
-                                     gdouble          y,
-                                     gdouble          width,
-                                     gdouble          height)
+                                   cairo_surface_t *surface,
+                                   gdouble          surface_x,
+                                   gdouble          surface_y,
+                                   gdouble          x,
+                                   gdouble          y,
+                                   gdouble          width,
+                                   gdouble          height)
 {
    /*
     * Only draw what we can do on integer aligned offsets. This is why
@@ -284,11 +284,11 @@ uber_graph_draw_surface_at_offset (cairo_t         *cr,
 
 static void
 uber_graph_draw_surface (cairo_t *cr,
-                           cairo_surface_t *surface,
-                           gdouble x,
-                           gdouble y,
-                           gdouble width,
-                           gdouble height)
+                         cairo_surface_t *surface,
+                         gdouble x,
+                         gdouble y,
+                         gdouble width,
+                         gdouble height)
 {
    uber_graph_draw_surface_at_offset(cr, surface, x, y, x, y,
                                      width, height);
@@ -451,7 +451,7 @@ uber_graph_get_n_x_lines (UberGraph *graph)
 
 static gchar *
 uber_graph_format_value (UberGraph *graph,
-                         gdouble     value)
+                         gdouble    value)
 {
    UberGraphPrivate *priv;
 
