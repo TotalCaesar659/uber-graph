@@ -274,7 +274,6 @@ uber_renderer_line_append (UberRendererLine *line,
 
    g_return_val_if_fail(UBER_IS_RENDERER_LINE(line), 0);
    g_return_val_if_fail(UBER_IS_MODEL(model), 0);
-   g_return_val_if_fail(column, 0);
 
    priv = line->priv;
 
@@ -386,11 +385,13 @@ uber_renderer_line_dispose (GObject *object)
 {
    UberRendererLinePrivate *priv = UBER_RENDERER_LINE(object)->priv;
    UberRendererLine *line = (UberRendererLine *)object;
+   Line *info;
 
    ENTRY;
 
    while (priv->lines->len) {
-      uber_renderer_line_remove(line, 0);
+      info = g_ptr_array_index(priv->lines, 0);
+      uber_renderer_line_remove(line, info->id);
    }
 
    G_OBJECT_CLASS(uber_renderer_line_parent_class)->dispose(object);
