@@ -69,6 +69,9 @@ void     uber_model_get             (UberModel     *model,
                                      UberModelIter *iter,
                                      gint          first_column,
                                      ...);
+gdouble  uber_model_get_double      (UberModel     *model,
+                                     UberModelIter *iter,
+                                     guint          column);
 void     uber_model_get_value       (UberModel     *model,
                                      UberModelIter *iter,
                                      guint          column,

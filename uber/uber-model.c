@@ -40,6 +40,34 @@ uber_model_get_column_type (UberModel *model,
    return UBER_MODEL_GET_INTERFACE(model)->get_column_type(model, column);
 }
 
+gdouble
+uber_model_get_double (UberModel     *model,
+                       UberModelIter *iter,
+                       guint          column)
+{
+   GValue value = { 0 };
+   GValue dvalue = { 0 };
+   gdouble ret;
+
+   g_return_val_if_fail(UBER_IS_MODEL(model), 0.0);
+   g_return_val_if_fail(iter, 0.0);
+
+   uber_model_get_value(model, iter, column, &value);
+   if (G_VALUE_HOLDS(&value, G_TYPE_DOUBLE)) {
+      ret = g_value_get_double(&value);
+      g_value_unset(&value);
+      return ret;
+   }
+
+   g_value_init(&dvalue, G_TYPE_DOUBLE);
+   g_value_transform(&value, &dvalue);
+   ret = g_value_get_double(&dvalue);
+   g_value_unset(&value);
+   g_value_unset(&dvalue);
+
+   return ret;
+}
+
 void
 uber_model_get_value (UberModel     *model,
                       UberModelIter *iter,
