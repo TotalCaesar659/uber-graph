@@ -26,7 +26,8 @@ NOINST_H_FILES =			\
 	uber/gring.h			\
 	uber/uber-debug.h		\
 	uber/uber-frame-source.h	\
-	uber/uber-timeout-interval.h
+	uber/uber-timeout-interval.h	\
+	uber/uber-util.h
 
 libuber_1_0_la_SOURCES = 		\
 	$(INST_H_FILES)			\
@@ -40,7 +41,8 @@ libuber_1_0_la_SOURCES = 		\
 	uber/uber-renderer-line.c	\
 	uber/uber-task.c		\
 	uber/uber-task-render.c		\
-	uber/uber-timeout-interval.c
+	uber/uber-timeout-interval.c	\
+	uber/uber-util.c
 
 UBER_GIR_FILES =			\
 	$(INST_H_FILES)			\
