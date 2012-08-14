@@ -34,6 +34,7 @@ typedef struct _UberModelIter  UberModelIter;
 
 struct _UberModelIter
 {
+   gdouble  time;
    gpointer user_data;
    gpointer user_data2;
    gpointer user_data3;
@@ -60,27 +61,33 @@ struct _UberModelIface
                                 UberModelIter *iter);
 };
 
-GType    uber_model_get_column_type (UberModel     *model,
-                                     guint          column);
-guint    uber_model_get_n_columns   (UberModel     *model);
-guint    uber_model_get_n_rows      (UberModel     *model);
-GType    uber_model_get_type        (void) G_GNUC_CONST;
-void     uber_model_get             (UberModel     *model,
-                                     UberModelIter *iter,
-                                     gint          first_column,
-                                     ...);
-gdouble  uber_model_get_double      (UberModel     *model,
-                                     UberModelIter *iter,
-                                     guint          column);
-void     uber_model_get_value       (UberModel     *model,
-                                     UberModelIter *iter,
-                                     guint          column,
-                                     GValue        *value);
-gboolean uber_model_get_iter_at_row (UberModel     *model,
-                                     UberModelIter *iter,
-                                     guint          row);
-gboolean uber_model_iter_next       (UberModel     *model,
-                                     UberModelIter *iter);
+GType    uber_model_get_column_type    (UberModel     *model,
+                                        guint          column);
+guint    uber_model_get_n_columns      (UberModel     *model);
+guint    uber_model_get_n_rows         (UberModel     *model);
+GType    uber_model_get_type           (void) G_GNUC_CONST;
+void     uber_model_get                (UberModel     *model,
+                                        UberModelIter *iter,
+                                        gint          first_column,
+                                        ...);
+gdouble  uber_model_get_end_time       (UberModel     *model);
+gdouble  uber_model_get_double         (UberModel     *model,
+                                        UberModelIter *iter,
+                                        guint          column);
+void     uber_model_get_value          (UberModel     *model,
+                                        UberModelIter *iter,
+                                        guint          column,
+                                        GValue        *value);
+gboolean uber_model_get_iter_at_row    (UberModel     *model,
+                                        UberModelIter *iter,
+                                        guint          row);
+gboolean uber_model_get_iter_for_range (UberModel     *model,
+                                        UberModelIter *iter,
+                                        gdouble        begin_time,
+                                        gdouble        end_time,
+                                        gdouble        aggregate_time);
+gboolean uber_model_iter_next          (UberModel     *model,
+                                        UberModelIter *iter);
 
 G_END_DECLS
 
