@@ -50,7 +50,7 @@ main (gint   argc,
                          NULL);
    gtk_window_set_default_size(window, 640, 320);
    g_signal_connect(window, "delete-event", gtk_main_quit, NULL);
-   g_timeout_add_seconds(1, add_randrom, model);
+   g_timeout_add(980, add_randrom, model);
    add_randrom(model);
    add_randrom(model);
    uber_graph_start(UBER_GRAPH(graph));
