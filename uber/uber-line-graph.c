@@ -45,8 +45,7 @@ G_DEFINE_TYPE(UberLineGraph, uber_line_graph, UBER_TYPE_GRAPH)
 typedef struct
 {
 	GRing     *raw_data;
-	GdkColor   color;
-	gdouble    alpha;
+	GdkRGBA    color;
 	gdouble    width;
 	gdouble   *dashes;
 	gint       num_dashes;
@@ -127,7 +126,7 @@ uber_line_graph_new (void)
  */
 static void
 uber_line_graph_color_changed (UberLabel     *label, /* IN */
-                               GdkColor      *color, /* IN */
+                               GdkRGBA       *color, /* IN */
                                UberLineGraph *graph) /* IN */
 {
 	UberLineGraphPrivate *priv;
@@ -214,7 +213,7 @@ uber_line_graph_get_autoscale (UberLineGraph *graph) /* IN */
 /**
  * uber_line_graph_add_line:
  * @graph: A #UberLineGraph.
- * @color: A #GdkColor for the line or %NULL.
+ * @color: A #GdkRGBA for the line or %NULL.
  *
  * Adds a new line to the graph.  If color is %NULL, the next value
  * in the default color list will be used.
@@ -226,7 +225,7 @@ uber_line_graph_get_autoscale (UberLineGraph *graph) /* IN */
  */
 gint
 uber_line_graph_add_line (UberLineGraph  *graph, /* IN */
-                          const GdkColor *color, /* IN */
+                          const GdkRGBA  *color, /* IN */
                           UberLabel      *label) /* IN */
 {
 	UberLineGraphPrivate *priv;
@@ -235,7 +234,6 @@ uber_line_graph_add_line (UberLineGraph  *graph, /* IN */
 	g_return_val_if_fail(UBER_IS_LINE_GRAPH(graph), 0);
 
 	priv = graph->priv;
-	info.alpha = 1.0;
 	info.width = 1.0;
 	/*
 	 * Retrieve the lines color.
@@ -243,7 +241,7 @@ uber_line_graph_add_line (UberLineGraph  *graph, /* IN */
 	if (color) {
 		info.color = *color;
 	} else {
-		gdk_color_parse("#729fcf", &info.color);
+		gdk_rgba_parse(&info.color, "#729fcf");
 	}
 	/*
 	 * Allocate buffers for data points.
@@ -423,11 +421,11 @@ uber_line_graph_stylize_line (UberLineGraph *graph, /* IN */
 	cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
 	cairo_set_line_width(cr, info->width);
 	cairo_set_antialias(cr, priv->antialias);
-	cairo_set_source_rgba(cr,
-	                      info->color.red / 65535.,
-	                      info->color.green / 65535.,
-	                      info->color.blue / 65535.,
-	                      info->alpha);
+	cairo_set_source_rgba(cr, 
+                          info->color.red,
+                          info->color.green,
+                          info->color.blue,
+                          info->color.alpha);
 }
 
 /**
@@ -773,32 +771,6 @@ uber_line_graph_set_line_dash (UberLineGraph *graph,      /* IN */
 		info->num_dashes = num_dashes;
 		info->dash_offset = offset;
 	}
-}
-
-/**
- * uber_line_graph_set_line_alpha:
- * @graph: A #UberLineGraph.
- *
- * XXX
- *
- * Returns: None.
- * Side effects: None.
- */
-void
-uber_line_graph_set_line_alpha (UberLineGraph *graph, /* IN */
-                                gint           line,  /* IN */
-                                gdouble        alpha) /* IN */
-{
-	UberLineGraphPrivate *priv;
-	LineInfo *info;
-
-	g_return_if_fail(UBER_IS_LINE_GRAPH(graph));
-	g_return_if_fail(line > 0);
-	g_return_if_fail(line <= graph->priv->lines->len);
-
-	priv = graph->priv;
-	info = &g_array_index(priv->lines, LineInfo, line - 1);
-	info->alpha = alpha;
 }
 
 /**

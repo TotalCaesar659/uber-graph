@@ -230,14 +230,11 @@ uber_window_add_graph (UberWindow  *window, /* IN */
 	 */
 	left_attach = 0;
 	top_attach = priv->graph_count; // % 4;
-	gtk_table_attach(GTK_TABLE(priv->table), hbox,
+	gtk_grid_attach(GTK_GRID(priv->table), hbox,
 	                 left_attach,
-	                 left_attach + 1,
-	                 top_attach,
-	                 top_attach + 1,
-	                 GTK_FILL | GTK_EXPAND,
-	                 GTK_FILL | GTK_EXPAND,
-	                 0, 0);
+                     top_attach,
+	                 1,
+	                 1);
 	/*
 	 * Attach signal to show ticks when label is shown.
 	 */
@@ -328,7 +325,9 @@ uber_window_init (UberWindow *window) /* IN */
 	/*
 	 * Create table for graphs.
 	 */
-	priv->table = gtk_table_new(1, 1, TRUE);
+	priv->table = gtk_grid_new();
+    gtk_grid_set_row_homogeneous(GTK_GRID(priv->table), TRUE);
+    gtk_grid_set_column_homogeneous(GTK_GRID(priv->table), TRUE);
 	gtk_notebook_append_page(GTK_NOTEBOOK(priv->notebook), priv->table, NULL);
 	gtk_widget_show(priv->table);
 }
