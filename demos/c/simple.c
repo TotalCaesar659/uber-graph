@@ -78,7 +78,7 @@ main (gint   argc,   /* IN */
 	GtkWidget *map;
 	GtkWidget *label;
 	GtkAccelGroup *ag;
-	GdkColor color;
+	GdkRGBA color;
 	gint i;
 	gint mod;
 
@@ -105,7 +105,7 @@ main (gint   argc,   /* IN */
 	                              (UberLineGraphFunc)dummy_line_func, (gpointer *)&line_maxval, NULL);
 	for (i = 0; i < NLINES; i++) {
 		mod = i % G_N_ELEMENTS(default_colors);
-		gdk_color_parse(default_colors[mod], &color);
+		gdk_rgba_parse(&color, default_colors[mod]);
 		label = uber_label_new();
 		uber_label_set_color(UBER_LABEL(label), &color);
 		uber_line_graph_add_line(UBER_LINE_GRAPH(line_many), &color,
@@ -115,14 +115,14 @@ main (gint   argc,   /* IN */
 	uber_line_graph_set_autoscale(UBER_LINE_GRAPH(line), TRUE);
 	label = uber_label_new();
 	uber_label_set_text(UBER_LABEL(label), "Random");
-	gdk_color_parse("#729fcf", &color);
+	gdk_rgba_parse(&color, "#729fcf");
 	uber_line_graph_add_line(UBER_LINE_GRAPH(line), &color, UBER_LABEL(label));
 	uber_line_graph_set_data_func(UBER_LINE_GRAPH(line),
 	                              (UberLineGraphFunc)dummy_line_func, (gpointer *)&line_maxval, NULL);
 
 
 	uber_graph_set_show_ylines(UBER_GRAPH(map), FALSE);
-	gdk_color_parse(default_colors[0], &color);
+	gdk_rgba_parse(&color, default_colors[0]);
 	uber_heat_map_set_fg_color(UBER_HEAT_MAP(map), &color);
 	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
 	                            (UberHeatMapFunc)dummy_heatmap_func, (gpointer *)&scatter_maxval, NULL);

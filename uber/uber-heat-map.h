@@ -55,7 +55,7 @@ struct _UberHeatMapClass
 GType      uber_heat_map_get_type      (void) G_GNUC_CONST;
 GtkWidget* uber_heat_map_new           (void);
 void       uber_heat_map_set_fg_color  (UberHeatMap     *map,
-                                        const GdkColor  *color);
+                                        const GdkRGBA   *color);
 void       uber_heat_map_set_data_func (UberHeatMap     *map,
                                         UberHeatMapFunc  func,
                                         gpointer         user_data,

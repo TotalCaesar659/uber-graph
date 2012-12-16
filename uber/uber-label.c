@@ -39,7 +39,7 @@ struct _UberLabelPrivate
 	GtkWidget *hbox;
 	GtkWidget *block;
 	GtkWidget *label;
-	GdkColor   color;
+	GdkRGBA   color;
 	gboolean   in_block;
 };
 
@@ -100,7 +100,7 @@ uber_label_set_text (UberLabel   *label, /* IN */
 /**
  * uber_label_set_color:
  * @label: A #UberLabel.
- * @color: A #GdkColor.
+ * @color: A #GdkRGBA.
  *
  * Sets the color of the label.
  *
@@ -109,7 +109,7 @@ uber_label_set_text (UberLabel   *label, /* IN */
  */
 void
 uber_label_set_color (UberLabel      *label, /* IN */
-                      const GdkColor *color) /* IN */
+                      const GdkRGBA *color) /* IN */
 {
 	UberLabelPrivate *priv;
 
@@ -134,7 +134,7 @@ uber_label_block_draw         (GtkWidget      *block, /* IN */
 	/*
 	 * Draw background.
 	 */
-	gdk_cairo_set_source_color(cr, &priv->color);
+	gdk_cairo_set_source_rgba(cr, &priv->color);
 	cairo_rectangle(cr, .5, .5, alloc.width - 1., alloc.height - 1.);
 	cairo_fill_preserve(cr);
 	/*
@@ -220,20 +220,18 @@ uber_label_block_button_press_event (GtkWidget      *widget, /* IN */
 {
 	UberLabelPrivate *priv;
 	GtkWidget *dialog;
-	GtkWidget *selection;
 
 	g_return_val_if_fail(UBER_IS_LABEL(label), FALSE);
 
 	priv = label->priv;
-	dialog = gtk_color_selection_dialog_new("");
-	selection = gtk_color_selection_dialog_get_color_selection(
-			GTK_COLOR_SELECTION_DIALOG(dialog));
-	gtk_color_selection_set_current_color(
-			GTK_COLOR_SELECTION(selection),
+	dialog = gtk_color_chooser_dialog_new("", GTK_WINDOW(gtk_widget_get_toplevel(widget)));
+    gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(dialog), TRUE);
+	gtk_color_chooser_set_rgba(
+			GTK_COLOR_CHOOSER(dialog),
 			&priv->color);
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
-		gtk_color_selection_get_current_color(
-				GTK_COLOR_SELECTION(selection),
+		gtk_color_chooser_get_rgba(
+				GTK_COLOR_CHOOSER(dialog),
 				&priv->color);
 		gtk_widget_queue_draw(widget);
 		g_signal_emit(label, signals[COLOR_CHANGED],
@@ -312,7 +310,7 @@ uber_label_class_init (UberLabelClass *klass) /* IN */
 	                                g_param_spec_boxed("color",
 	                                                   "color",
 	                                                   "color",
-	                                                   GDK_TYPE_COLOR,
+	                                                   GDK_TYPE_RGBA,
 	                                                   G_PARAM_WRITABLE));
 
 	g_object_class_install_property(object_class,
@@ -326,7 +324,7 @@ uber_label_class_init (UberLabelClass *klass) /* IN */
 	/**
 	 * UberLabel::color-changed:
 	 * @label: An #UberLabel.
-	 * @color: A #GdkColor.
+	 * @color: A #GdkRGBA.
 	 *
 	 * Signal emitted when the color is changed.
 	 */
@@ -363,7 +361,7 @@ uber_label_init (UberLabel *label) /* IN */
 	priv->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
 	priv->block = gtk_drawing_area_new();
 	priv->label = gtk_label_new(NULL);
-	gdk_color_parse("#cc0000", &priv->color);
+	gdk_rgba_parse(&priv->color, "#cc0000");
 	gtk_misc_set_alignment(GTK_MISC(priv->label), .0, .5);
 	gtk_widget_set_size_request(priv->block, 32, 17);
 	gtk_container_add(GTK_CONTAINER(label), priv->hbox);

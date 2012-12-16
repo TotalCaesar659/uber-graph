@@ -1138,7 +1138,8 @@ uber_graph_render_x_axis (UberGraph *graph, /* IN */
 	const gdouble dashes[] = { 1.0, 2.0 };
 	PangoFontDescription *fd;
 	PangoLayout *pl;
-	GtkStyle *style;
+	GtkStyleContext *style;
+    GdkRGBA fg_color;
 	gfloat each;
 	gfloat x;
 	gfloat y;
@@ -1152,7 +1153,9 @@ uber_graph_render_x_axis (UberGraph *graph, /* IN */
 	g_return_if_fail(UBER_IS_GRAPH(graph));
 
 	priv = graph->priv;
-	style = gtk_widget_get_style(GTK_WIDGET(graph));
+	style = gtk_widget_get_style_context(GTK_WIDGET(graph));
+    gtk_style_context_get_color(style, GTK_STATE_FLAG_NORMAL, &fg_color);
+
 	count = priv->x_slots / 10;
 	each = priv->content_rect.width / (gfloat)count;
 	/*
@@ -1164,7 +1167,7 @@ uber_graph_render_x_axis (UberGraph *graph, /* IN */
 	pango_font_description_set_family_static(fd, "Monospace");
 	pango_font_description_set_size(fd, 6 * PANGO_SCALE);
 	pango_layout_set_font_description(pl, fd);
-	gdk_cairo_set_source_color(cr, &style->fg[GTK_STATE_NORMAL]);
+	gdk_cairo_set_source_rgba(cr, &fg_color);
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0);
 	for (i = 0; i <= count; i++) {
@@ -1220,7 +1223,8 @@ uber_graph_render_y_line (UberGraph   *graph,     /* IN */
 	const gdouble dashes[] = { 1.0, 2.0 };
 	PangoFontDescription *fd;
 	PangoLayout *pl;
-	GtkStyle *style;
+	GtkStyleContext *style;
+    GdkRGBA fg_color;
 	va_list args;
 	gchar *text;
 	gint width;
@@ -1232,14 +1236,15 @@ uber_graph_render_y_line (UberGraph   *graph,     /* IN */
 	g_return_if_fail(format != NULL);
 
 	priv = graph->priv;
-	style = gtk_widget_get_style(GTK_WIDGET(graph));
+	style = gtk_widget_get_style_context(GTK_WIDGET(graph));
+    gtk_style_context_get_color(style, GTK_STATE_FLAG_NORMAL, &fg_color);
 	/*
 	 * Draw grid line.
 	 */
 	cairo_save(cr);
 	cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0);
 	cairo_set_line_width(cr, 1.0);
-	gdk_cairo_set_source_color(cr, &style->fg[GTK_STATE_NORMAL]);
+	gdk_cairo_set_source_rgba(cr, &fg_color);
 	cairo_move_to(cr, priv->content_rect.x - priv->tick_len, real_y);
 	if (tick_only) {
 		cairo_line_to(cr, priv->content_rect.x, real_y);
@@ -1253,7 +1258,7 @@ uber_graph_render_y_line (UberGraph   *graph,     /* IN */
 	 */
 	if (!no_label) {
 		cairo_save(cr);
-		gdk_cairo_set_source_color(cr, &style->fg[GTK_STATE_NORMAL]);
+		gdk_cairo_set_source_rgba(cr, &fg_color);
 		/*
 		 * Format text.
 		 */
@@ -1482,7 +1487,9 @@ uber_graph_render_bg (UberGraph *graph) /* IN */
 	const gdouble dashes[] = { 1.0, 2.0 };
 	UberGraphPrivate *priv;
 	GtkAllocation alloc;
-	GtkStyle *style;
+	GtkStyleContext *style;
+    GdkRGBA fg_color;
+    GdkRGBA light_color;
 	cairo_t *cr;
 
 	g_return_if_fail(UBER_IS_GRAPH(graph));
@@ -1492,7 +1499,9 @@ uber_graph_render_bg (UberGraph *graph) /* IN */
 	 */
 	priv = graph->priv;
 	gtk_widget_get_allocation(GTK_WIDGET(graph), &alloc);
-	style = gtk_widget_get_style(GTK_WIDGET(graph));
+	style = gtk_widget_get_style_context(GTK_WIDGET(graph));
+    gtk_style_context_get_color(style, GTK_STATE_FLAG_NORMAL, &fg_color);
+    gtk_style_context_get_color(style, GTK_STATE_FLAG_SELECTED, &light_color);
 	cr = cairo_create(priv->bg_surface);
 	/*
 	 * Ensure valid resources.
@@ -1512,7 +1521,7 @@ uber_graph_render_bg (UberGraph *graph) /* IN */
 	 * Paint the content area background.
 	 */
 	cairo_save(cr);
-	gdk_cairo_set_source_color(cr, &style->light[GTK_STATE_NORMAL]);
+	gdk_cairo_set_source_rgba(cr, &light_color);
 	gdk_cairo_rectangle(cr, &priv->content_rect);
 	cairo_fill(cr);
 	cairo_restore(cr);
@@ -1520,7 +1529,7 @@ uber_graph_render_bg (UberGraph *graph) /* IN */
 	 * Stroke the border around the content area.
 	 */
 	cairo_save(cr);
-	gdk_cairo_set_source_color(cr, &style->fg[GTK_STATE_NORMAL]);
+	gdk_cairo_set_source_rgba(cr, &fg_color);
 	cairo_set_line_width(cr, 1.0);
 	cairo_set_dash(cr, dashes, G_N_ELEMENTS(dashes), 0);
 	cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);

@@ -51,7 +51,7 @@ struct _UberLabelClass
 GType      uber_label_get_type   (void) G_GNUC_CONST;
 GtkWidget* uber_label_new        (void);
 void       uber_label_set_color  (UberLabel      *label,
-                                  const GdkColor *color);
+                                  const GdkRGBA  *color);
 void       uber_label_set_text   (UberLabel      *label,
                                   const gchar    *text);
 

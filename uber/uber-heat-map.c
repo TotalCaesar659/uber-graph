@@ -39,7 +39,7 @@ struct _UberHeatMapPrivate
 {
 	GRing           *raw_data;
 	gboolean         fg_color_set;
-	GdkColor         fg_color;
+	GdkRGBA         fg_color;
 	UberHeatMapFunc  func;
 	GDestroyNotify   func_destroy;
 	gpointer         func_user_data;
@@ -191,8 +191,8 @@ uber_heat_map_render_fast (UberGraph    *graph, /* IN */
                            gfloat        each)  /* IN */
 {
 	UberHeatMapPrivate *priv;
-	GtkStyle *style;
-	GdkColor color;
+	GtkStyleContext *style;
+	GdkRGBA color;
 	gfloat height;
 	gint i;
 
@@ -201,8 +201,8 @@ uber_heat_map_render_fast (UberGraph    *graph, /* IN */
 	priv = UBER_HEAT_MAP(graph)->priv;
 	color = priv->fg_color;
 	if (!priv->fg_color_set) {
-		style = gtk_widget_get_style(GTK_WIDGET(graph));
-		color = style->dark[GTK_STATE_SELECTED];
+		style = gtk_widget_get_style_context(GTK_WIDGET(graph));
+		gtk_style_context_get_color(style, GTK_STATE_FLAG_SELECTED, &color);
 	}
 	/*
 	 * XXX: Temporarily draw nice little squares.
@@ -216,9 +216,9 @@ uber_heat_map_render_fast (UberGraph    *graph, /* IN */
 		                each,
 		                height);
 		cairo_set_source_rgba(cr,
-		                      color.red / 65535.,
-		                      color.green / 65535.,
-		                      color.blue / 65535.,
+		                      color.red,
+		                      color.green,
+		                      color.blue,
 		                      g_random_double_range(0., 1.));
 		cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);
 		cairo_fill(cr);
@@ -273,7 +273,7 @@ uber_heat_map_get_next_data (UberGraph *graph) /* IN */
  */
 void
 uber_heat_map_set_fg_color (UberHeatMap    *map,   /* IN */
-                            const GdkColor *color) /* IN */
+                            const GdkRGBA  *color) /* IN */
 {
 	UberHeatMapPrivate *priv;
 
