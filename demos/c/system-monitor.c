@@ -87,7 +87,7 @@ main (gint   argc,   /* IN */
 	GtkWidget *scatter;
 	GtkWidget *label;
 	GtkAccelGroup *ag;
-	GdkColor color;
+	GdkRGBA color;
 	gint lineno;
 	gint nprocs;
 	gint i;
@@ -132,7 +132,7 @@ main (gint   argc,   /* IN */
 	                              smon_get_cpu_info, NULL, NULL);
 	for (i = 0; i < nprocs; i++) {
 		mod = i % G_N_ELEMENTS(default_colors);
-		gdk_color_parse(default_colors[mod], &color);
+		gdk_rgba_parse(&color, default_colors[mod]);
 		label = uber_label_new();
 		uber_label_set_color(UBER_LABEL(label), &color);
 		uber_line_graph_add_line(UBER_LINE_GRAPH(cpu), &color,
@@ -146,7 +146,6 @@ main (gint   argc,   /* IN */
 		if (smon_cpu_has_freq_scaling(i)) {
 			uber_line_graph_set_line_dash(UBER_LINE_GRAPH(cpu), lineno,
 			                              dashes, G_N_ELEMENTS(dashes), 0);
-			uber_line_graph_set_line_alpha(UBER_LINE_GRAPH(cpu), lineno, 1.);
 		}
 	}
 	/*
@@ -155,11 +154,11 @@ main (gint   argc,   /* IN */
 	uber_line_graph_set_range(UBER_LINE_GRAPH(line), &ui_range);
 	label = uber_label_new();
 	uber_label_set_text(UBER_LABEL(label), "GDK Events");
-	gdk_color_parse("#729fcf", &color);
+	gdk_rgba_parse(&color, "#729fcf");
 	uber_line_graph_add_line(UBER_LINE_GRAPH(line), &color, UBER_LABEL(label));
 	label = uber_label_new();
 	uber_label_set_text(UBER_LABEL(label), "X Events");
-	gdk_color_parse("#a40000", &color);
+	gdk_rgba_parse(&color, "#a40000");
 	uber_line_graph_add_line(UBER_LINE_GRAPH(line), &color, UBER_LABEL(label));
 	uber_line_graph_set_data_func(UBER_LINE_GRAPH(line),
 	                              smon_get_xevent_info, NULL, NULL);
@@ -172,18 +171,18 @@ main (gint   argc,   /* IN */
 	uber_graph_set_format(UBER_GRAPH(net), UBER_GRAPH_FORMAT_DIRECT1024);
 	label = uber_label_new();
 	uber_label_set_text(UBER_LABEL(label), "Bytes In");
-	gdk_color_parse("#a40000", &color);
+	gdk_rgba_parse(&color, "#a40000");
 	uber_line_graph_add_line(UBER_LINE_GRAPH(net), &color, UBER_LABEL(label));
 	label = uber_label_new();
 	uber_label_set_text(UBER_LABEL(label), "Bytes Out");
-	gdk_color_parse("#4e9a06", &color);
+	gdk_rgba_parse(&color, "#4e9a06");
 	uber_line_graph_add_line(UBER_LINE_GRAPH(net), &color, UBER_LABEL(label));
 
 	/*
 	 * Configure heat map.
 	 */
 	uber_graph_set_show_ylines(UBER_GRAPH(map), FALSE);
-	gdk_color_parse(default_colors[0], &color);
+	gdk_rgba_parse(&color, default_colors[0]);
 	uber_heat_map_set_fg_color(UBER_HEAT_MAP(map), &color);
 	uber_heat_map_set_data_func(UBER_HEAT_MAP(map),
 	                            (UberHeatMapFunc)dummy_scatter_func, NULL, NULL);
@@ -196,7 +195,7 @@ main (gint   argc,   /* IN */
 	 */
 	if (want_blktrace) {
 		uber_graph_set_show_ylines(UBER_GRAPH(scatter), FALSE);
-		gdk_color_parse(default_colors[3], &color);
+		gdk_rgba_parse(&color, default_colors[3]);
 		uber_scatter_set_fg_color(UBER_SCATTER(scatter), &color);
 		uber_scatter_set_data_func(UBER_SCATTER(scatter),
 								   (UberScatterFunc)uber_blktrace_get, NULL, NULL);
@@ -244,7 +243,7 @@ main (gint   argc,   /* IN */
 	/*
 	 * Start sampling thread.
 	 */
-	g_thread_create((GThreadFunc)sample_thread, NULL, FALSE, NULL);
+	g_thread_new("sample", (GThreadFunc)sample_thread, NULL);
 	gtk_main();
 	/*
 	 * Cleanup after blktrace.

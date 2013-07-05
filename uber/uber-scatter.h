@@ -55,7 +55,7 @@ struct _UberScatterClass
 GType      uber_scatter_get_type      (void) G_GNUC_CONST;
 GtkWidget* uber_scatter_new           (void);
 void       uber_scatter_set_fg_color  (UberScatter     *scatter,
-                                       const GdkColor  *color);
+                                       const GdkRGBA   *color);
 void       uber_scatter_set_data_func (UberScatter     *scatter,
                                        UberScatterFunc  func,
                                        gpointer         user_data,

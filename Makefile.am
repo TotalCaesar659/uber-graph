@@ -85,7 +85,7 @@ DISTCHECK_CONFIGURE_FLAGS += --enable-introspection
 EXTRA_DIST += introspection.m4
 endif
 
-noinst_PROGRAMS += demos/c/simple
+noinst_PROGRAMS += demos/c/simple demos/c/sysmon
 
 demos_c_simple_SOURCES = 	\
 	demos/c/simple.c
@@ -102,6 +102,28 @@ demos_c_simple_CFLAGS = 	\
 demos_c_simple_LDADD = 	\
 	$(top_builddir)/libuber-1.0.la \
 	$(GTK_LIBS) 		\
+	$(AM_LDADD)
+
+demos_c_sysmon_SOURCES = 	\
+	demos/c/blktrace.h \
+	demos/c/sysmon.h \
+	demos/c/blktrace.c \
+	demos/c/sysmon.c \
+	demos/c/system-monitor.c
+
+demos_c_sysmon_CPPFLAGS = 	\
+	-I$(top_srcdir)/ 	\
+	-I$(top_srcdir)/uber	\
+	$(AM_CPPFLAGS)
+
+demos_c_sysmon_CFLAGS = 	\
+	$(GTK_CFLAGS) 		\
+	$(AM_CFLAGS)
+
+demos_c_sysmon_LDADD = 	\
+	$(top_builddir)/libuber-1.0.la \
+	$(GTK_LIBS) 		\
+    -ldl \
 	$(AM_LDADD)
 
 
