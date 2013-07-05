@@ -45,7 +45,7 @@ struct _UberScatterPrivate
 	GRing           *raw_data;
 	UberRange        range;
 	gint             stride;
-	GdkColor         fg_color;
+	GdkRGBA          fg_color;
 	gboolean         fg_color_set;
 	UberScatterFunc  func;
 	gpointer         func_user_data;
@@ -167,8 +167,8 @@ uber_scatter_render (UberGraph     *graph, /* IN */
 {
 	UberScatterPrivate *priv;
 	UberRange pixel_range;
-	GtkStyle *style;
-	GdkColor color;
+	GtkStyleContext *style;
+	GdkRGBA color;
 	GArray *ar;
 	gdouble x;
 	gdouble y;
@@ -180,8 +180,8 @@ uber_scatter_render (UberGraph     *graph, /* IN */
 	priv = UBER_SCATTER(graph)->priv;
 	color = priv->fg_color;
 	if (!priv->fg_color_set) {
-		style = gtk_widget_get_style(GTK_WIDGET(graph));
-		color = style->dark[GTK_STATE_SELECTED];
+		style = gtk_widget_get_style_context(GTK_WIDGET(graph));
+		gtk_style_context_get_color(style, GTK_STATE_FLAG_SELECTED, &color);
 	}
 	/*
 	 * Calculate ranges.
@@ -212,9 +212,9 @@ uber_scatter_render (UberGraph     *graph, /* IN */
 			 */
 			cairo_arc(cr, x, y, RADIUS, 0, 2 * M_PI);
 			cairo_set_source_rgb(cr,
-			                     color.red / 65535.,
-			                     color.green / 65535.,
-			                     color.blue / 65535.);
+			                     color.red,
+			                     color.green,
+			                     color.blue);
 			cairo_fill(cr);
 		}
 	}
@@ -238,8 +238,8 @@ uber_scatter_render_fast (UberGraph    *graph, /* IN */
 {
 	UberScatterPrivate *priv;
 	UberRange pixel_range;
-	GtkStyle *style;
-	GdkColor color;
+	GtkStyleContext *style;
+	GdkRGBA color;
 	GArray *ar;
 	gdouble x;
 	gdouble y;
@@ -250,8 +250,8 @@ uber_scatter_render_fast (UberGraph    *graph, /* IN */
 	priv = UBER_SCATTER(graph)->priv;
 	color = priv->fg_color;
 	if (!priv->fg_color_set) {
-		style = gtk_widget_get_style(GTK_WIDGET(graph));
-		color = style->dark[GTK_STATE_SELECTED];
+		style = gtk_widget_get_style_context(GTK_WIDGET(graph));
+		gtk_style_context_get_color(style, GTK_STATE_FLAG_SELECTED, &color);
 	}
 	/*
 	 * Calculate ranges.
@@ -293,9 +293,9 @@ uber_scatter_render_fast (UberGraph    *graph, /* IN */
 		 */
 		cairo_arc(cr, x, y, RADIUS, 0, 2 * M_PI);
 		cairo_set_source_rgb(cr,
-		                     color.red / 65535.,
-		                     color.green / 65535.,
-		                     color.blue / 65535.);
+		                     color.red,
+		                     color.green,
+		                     color.blue);
 		cairo_fill(cr);
 	}
 }
@@ -339,7 +339,7 @@ uber_scatter_get_next_data (UberGraph *graph) /* IN */
  */
 void
 uber_scatter_set_fg_color (UberScatter    *scatter, /* IN */
-                           const GdkColor *color)   /* IN */
+                           const GdkRGBA *color)   /* IN */
 {
 	UberScatterPrivate *priv;
 
