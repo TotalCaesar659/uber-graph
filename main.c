@@ -39,6 +39,15 @@ draw_chunk (gpointer widget)
    uber_range_set_max(gXRange, gCount);
    cairo_matrix_init_scale(&scale, 600.0, 200.0);
    cairo_transform(cr, &scale);
+   {
+      gdouble a = g_random_double_range(0, 1);
+      gdouble b = g_random_double_range(0, 1);
+      gdouble c = g_random_double_range(0, 1);
+      cairo_set_source_rgb(cr, a, b, c);
+      cairo_rectangle(cr, 0, 0, 200, 5);
+      cairo_fill(cr);
+   }
+   if (0)
    uber_renderer_draw(gRenderer, cr, &area, gXRange, gYRange);
    cairo_destroy(cr);
 
