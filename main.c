@@ -114,10 +114,12 @@ main (gint   argc,
 
    gtk_init(&argc, &argv);
    gRaw = g_object_new(GTK_TYPE_DRAWING_AREA,
+                       "expand", TRUE,
                        "visible", TRUE,
                        NULL);
    g_signal_connect(gRaw, "draw", G_CALLBACK(draw_raw), NULL);
    gRinged = g_object_new(GTK_TYPE_DRAWING_AREA,
+                          "expand", TRUE,
                           "visible", TRUE,
                           NULL);
    g_signal_connect(gRinged, "draw", G_CALLBACK(draw_ringed), NULL);
@@ -125,6 +127,7 @@ main (gint   argc,
                        "orientation", GTK_ORIENTATION_VERTICAL,
                        "spacing", 6,
                        "visible", TRUE,
+                       "expand", TRUE,
                        NULL);
    gtk_container_add(vbox, gRaw);
    gtk_container_add(vbox, gRinged);
