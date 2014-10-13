@@ -121,7 +121,8 @@ main (gint   argc,
                           "visible", TRUE,
                           NULL);
    g_signal_connect(gRinged, "draw", G_CALLBACK(draw_ringed), NULL);
-   vbox = g_object_new(GTK_TYPE_VBOX,
+   vbox = g_object_new(GTK_TYPE_BOX,
+                       "orientation", GTK_ORIENTATION_VERTICAL,
                        "spacing", 6,
                        "visible", TRUE,
                        NULL);

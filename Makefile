@@ -11,7 +11,7 @@ OBJECTS += uber-renderer-circle.o
 
 WARNINGS :=
 WARNINGS += -Wall
-WARNINGS += -Werror
+#WARNINGS += -Werror
 
 PKGS :=
 PKGS += gtk+-3.0
