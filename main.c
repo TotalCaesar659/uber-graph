@@ -85,11 +85,20 @@ draw_ringed (GtkWidget *widget,
    return TRUE;
 }
 
+static gboolean
+tick_cb (GtkWidget     *widget,
+         GdkFrameClock *clock,
+         gpointer       user_data)
+{
+  return draw_chunk (widget);
+}
+
 static void
 on_realize (GtkWidget *window,
             gpointer   user_data)
 {
    cairo_surface_t *surface;
+
 
    surface =
       gdk_window_create_similar_surface(
@@ -101,7 +110,8 @@ on_realize (GtkWidget *window,
    gRenderer = g_object_new(UBER_TYPE_RENDERER_CIRCLE,
                             "radius", 1.0,
                             NULL);
-   g_timeout_add(16, draw_chunk, NULL);
+   //g_timeout_add(16, draw_chunk, NULL);
+   gtk_widget_add_tick_callback (window, tick_cb, NULL, NULL);
    cairo_surface_destroy(surface);
 }
 
