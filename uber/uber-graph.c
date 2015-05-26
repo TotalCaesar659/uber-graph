@@ -532,8 +532,10 @@ uber_graph_calculate_rects (UberGraph *graph) /* IN */
 	/*
 	 * Update positioning for label alignment.
 	 */
-	gtk_alignment_set_padding(GTK_ALIGNMENT(priv->align),
-	                          6, 6, priv->content_rect.x, 0);
+	gtk_widget_set_margin_top(GTK_WIDGET(priv->align), 6);
+	gtk_widget_set_margin_bottom(GTK_WIDGET(priv->align), 6);
+	gtk_widget_set_margin_start(GTK_WIDGET(priv->align), priv->content_rect.x);
+	gtk_widget_set_margin_end(GTK_WIDGET(priv->align), 0);
 }
 
 /**
@@ -1866,8 +1868,8 @@ uber_graph_take_screenshot (UberGraph *graph) /* IN */
 	dialog = gtk_file_chooser_dialog_new(_("Save As"),
 	                                     GTK_WINDOW(gtk_widget_get_toplevel(widget)),
 	                                     GTK_FILE_CHOOSER_ACTION_SAVE,
-	                                     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-	                                     GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+	                                     _("_Cancel"), GTK_RESPONSE_CANCEL,
+	                                     _("_Save"), GTK_RESPONSE_ACCEPT,
 	                                     NULL);
 	if (GTK_RESPONSE_ACCEPT == gtk_dialog_run(GTK_DIALOG(dialog))) {
 		/*
@@ -2159,7 +2161,7 @@ uber_graph_init (UberGraph *graph) /* IN */
 	 */
 	priv->labels = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 3);
 	gtk_box_set_homogeneous (GTK_BOX(priv->labels), TRUE);
-	priv->align = gtk_alignment_new(.5, .5, 1., 1.);
+	priv->align = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_add(GTK_CONTAINER(priv->align), priv->labels);
 	gtk_widget_show(priv->labels);
 }

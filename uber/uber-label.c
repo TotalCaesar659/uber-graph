@@ -32,7 +32,7 @@
  * Section overview.
  */
 
-G_DEFINE_TYPE(UberLabel, uber_label, GTK_TYPE_ALIGNMENT)
+G_DEFINE_TYPE(UberLabel, uber_label, GTK_TYPE_WIDGET)
 
 struct _UberLabelPrivate
 {
@@ -362,7 +362,8 @@ uber_label_init (UberLabel *label) /* IN */
 	priv->block = gtk_drawing_area_new();
 	priv->label = gtk_label_new(NULL);
 	gdk_rgba_parse(&priv->color, "#cc0000");
-	gtk_misc_set_alignment(GTK_MISC(priv->label), .0, .5);
+	gtk_widget_set_halign(GTK_WIDGET(priv->label), GTK_ALIGN_START);
+	gtk_widget_set_valign(GTK_WIDGET(priv->label), GTK_ALIGN_CENTER);
 	gtk_widget_set_size_request(priv->block, 32, 17);
 	gtk_container_add(GTK_CONTAINER(label), priv->hbox);
 	gtk_box_pack_start(GTK_BOX(priv->hbox), priv->block, FALSE, TRUE, 0);
