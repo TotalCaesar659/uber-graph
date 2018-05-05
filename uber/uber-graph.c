@@ -459,6 +459,8 @@ uber_graph_calculate_rects (UberGraph *graph) /* IN */
 	gint pango_width;
 	gint pango_height;
 	cairo_t *cr;
+	cairo_region_t *region;
+	GdkDrawingContext *context;
 
 	g_return_if_fail(UBER_IS_GRAPH(graph));
 
@@ -474,7 +476,9 @@ uber_graph_calculate_rects (UberGraph *graph) /* IN */
 	/*
 	 * Determine the pixels required for labels.
 	 */
-	cr = gdk_cairo_create(window);
+	region = gdk_window_get_clip_region(window);
+	context = gdk_window_begin_draw_frame(window, region);
+	cr = gdk_drawing_context_get_cairo_context(context);
 	layout = pango_cairo_create_layout(cr);
 	font_desc = pango_font_description_new();
 	pango_font_description_set_family_static(font_desc, "Monospace");
@@ -484,7 +488,7 @@ uber_graph_calculate_rects (UberGraph *graph) /* IN */
 	pango_layout_get_pixel_size(layout, &pango_width, &pango_height);
 	pango_font_description_free(font_desc);
 	g_object_unref(layout);
-	cairo_destroy(cr);
+	gdk_window_end_draw_frame(window, context);
 	/*
 	 * Calculate content area rectangle.
 	 */
